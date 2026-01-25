@@ -15,6 +15,7 @@ use App\Http\Transformers\ComponentsTransformer;
 use App\Http\Transformers\LicensesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\AccessoryCheckout;
+use App\Models\Actionlog;
 use App\Models\Asset;
 use App\Models\AssetModel;
 use App\Models\CheckoutAcceptance;
@@ -153,6 +154,15 @@ class AssetsController extends Controller
         }
 
         $assets = Asset::select('assets.*')
+            ->addSelect([
+                'first_checkout_at' => Actionlog::query()
+                    ->select('created_at')
+                    ->whereColumn('item_id', 'assets.id')
+                    ->where('item_type', Asset::class)
+                    ->where('action_type', 'checkout')
+                    ->orderBy('created_at')
+                    ->limit(1),
+            ])
             ->with(
                 'model',
                 'location',

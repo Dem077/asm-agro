@@ -8,9 +8,8 @@
 
 {{-- Page content --}}
 @section('content')
-
-    <div class="row">
-        <div class="col-md-12">
+    <x-container>
+        <x-box.container>
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
 
@@ -22,7 +21,6 @@
                             </span>
                             <span class="hidden-xs hidden-sm">{{ trans('general.assets') }}
                                 {!! ($company->assets()->AssetsForShow()->count() > 0 ) ? '<span class="badge badge-secondary">'.number_format($company->assets()->AssetsForShow()->count()).'</span>' : '' !!}
-
                             </span>
                         </a>
                     </li>
@@ -207,8 +205,8 @@
 
                 </div><!-- /.tab-content -->
             </div><!-- nav-tabs-custom -->
-        </div>
-    </div>
+        </x-box.container>
+    </x-container>
 
 @stop
 @section('moar_scripts')

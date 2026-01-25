@@ -46,6 +46,8 @@ class IconHelper
                 return 'fa-regular fa-envelope';
             case 'phone':
                 return 'fa-solid fa-phone';
+            case 'fax':
+                return 'fa-solid fa-fax';
             case 'mobile':
                 return 'fas fa-mobile-screen-button';
             case 'long-arrow-right':

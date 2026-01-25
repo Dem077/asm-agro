@@ -9,12 +9,8 @@
 
 {{-- Page content --}}
 @section('content')
-
-
-<div class="row">
-  <div class="col-md-12">
-    <div class="box box-default">
-      <div class="box-body">
+    <x-container>
+        <x-box.container>
 
           <table
               data-columns="{{ \App\Presenters\LicensePresenter::dataTableLayout() }}"
@@ -34,13 +30,8 @@
             }'>
           </table>
 
-      </div><!-- /.box-body -->
-
-      <div class="box-footer clearfix">
-      </div>
-    </div><!-- /.box -->
-  </div>
-</div>
+        </x-box.container>
+    </x-container>
 @stop
 
 @section('moar_scripts')

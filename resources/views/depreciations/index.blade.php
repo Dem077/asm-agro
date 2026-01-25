@@ -8,12 +8,11 @@
 
 {{-- Page content --}}
 @section('content')
+    <x-container>
 
-<div class="row">
-  <div class="col-md-9">
-    <div class="box box-default">
-      <div class="box-body">
-          <table
+        <x-page-column>
+            <x-box.container>
+              <table
                   data-columns="{{ \App\Presenters\DepreciationPresenter::dataTableLayout() }}"
                   data-cookie-id-table="depreciationsTable"
                   data-id-table="depreciationsTable"
@@ -28,19 +27,12 @@
                     "fileName": "export-depreciations-{{ date('Y-m-d') }}",
                     "ignoreColumn": ["actions","image","change","checkbox","checkincheckout","icon"]
                     }'>
-          </table>
-      </div>
-    </div>
-  </div> <!-- /.col-md-9-->
+              </table>
 
+            </x-box.container>
+        </x-page-column>
 
-  <!-- side address column -->
-  <div class="col-md-3">
-    <h2>{{ trans('admin/depreciations/general.about_asset_depreciations') }}</h2>
-    <p>{{ trans('admin/depreciations/general.about_depreciations') }} </p>
-  </div>
-
-</div>
+    </x-container>
 
 @stop
 

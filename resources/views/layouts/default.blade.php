@@ -195,6 +195,7 @@
         input[type="url"],
         input[type="email"],
         input[type="password"],
+        input[type="tel"],
         option:active,
         option[active],
         option[selected],

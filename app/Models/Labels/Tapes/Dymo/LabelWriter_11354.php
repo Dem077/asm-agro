@@ -96,17 +96,19 @@ class LabelWriter_11354 extends LabelWriter
         }
 
         // Right column
-        if ($record->has('title')) {
-            static::writeText(
-                $pdf, $record->get('title'),
-                $currentX, $currentY,
-                'freesans', 'b', self::TITLE_SIZE, 'L',
-                $usableWidth, self::TITLE_SIZE, true, 0
-            );
-            $currentY += self::TITLE_SIZE + self::TITLE_MARGIN;
+        $title = $record->has('title') ? $record->get('title') : null;
+        $fields = $record->get('fields');
+        $maxFields = $this->getSupportFields();
+        $fields = collect($fields);
+        if ($title) {
+            $maxFields = max(0, $maxFields - 1); // title consumes one row’s worth of space
         }
 
-        $fields = $record->get('fields');
+        $fields = $fields->take($maxFields)->values();
+
+        $usableHeight = $pa->h
+            - self::TAG_SIZE           // bottom tag text
+            - self::BARCODE_MARGIN;    // gap between fields and 1D
 
         $field_layout = Helper::labelFieldLayoutScaling(
             pdf: $pdf,
@@ -117,18 +119,48 @@ class LabelWriter_11354 extends LabelWriter
             baseLabelSize: self::LABEL_SIZE,
             baseFieldSize: self::FIELD_SIZE,
             baseFieldMargin: self::FIELD_MARGIN,
+            title: $title,
+            baseTitleSize: self::TITLE_SIZE,
+            baseTitleMargin: self::TITLE_MARGIN,
             baseLabelPadding: 1.5,
             baseGap: 1.5,
             maxScale: 1.8,
             labelFont: 'freesans',
         );
 
-        foreach ($fields as $field) {
+        if ($field_layout['hasTitle']) {
             static::writeText(
-                $pdf, $field['label'],
+                $pdf, $title,
+                $currentX, $currentY,
+                'freesans', 'b', $field_layout['titleSize'], 'L',
+                $usableWidth, $field_layout['titleSize'], true, 0
+            );
+            $currentY += $field_layout['titleAdvance'];
+        }
+        foreach ($fields as $field) {
+            $rawLabel = $field['label'] ?? null;
+            $value    = (string)($field['value'] ?? '');
+
+            // No label: value takes the whole row
+            if (!is_string($rawLabel) || trim($rawLabel) === '') {
+                static::writeText(
+                    $pdf, $value,
+                    $currentX, $currentY,
+                    'freemono', 'B', $field_layout['fieldSize'], 'L',
+                    $usableWidth, $field_layout['rowAdvance'], true, 0, 0.01
+                );
+
+                $currentY += $field_layout['rowAdvance'];
+                continue;
+            }
+
+            $labelText = rtrim($field['label'], ':') . ':';
+
+            static::writeText(
+                $pdf, $labelText,
                 $currentX, $currentY,
                 'freesans', '', $field_layout['labelSize'], 'L',
-                $field_layout['labelWidth'], $field_layout['rowAdvance'], true, 0
+                $field_layout['labelWidth'], $field_layout['rowAdvance'], true,
             );
 
             static::writeText(
@@ -137,7 +169,7 @@ class LabelWriter_11354 extends LabelWriter
                 'freemono', 'B', $field_layout['fieldSize'], 'L',
                 $field_layout['valueWidth'], $field_layout['rowAdvance'], true, 0, 0.01
             );
-            $currentY += $field_layout['rowAdvance'];
+            $currentY += $field_layout['rowAdvance'];;
         }
     }
 

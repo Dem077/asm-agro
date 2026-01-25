@@ -8,20 +8,15 @@
 
 @section('header_right')
     <a href="{{ route('groups.edit', ['group' => $group->id]) }}" class="btn btn-primary text-right">{{ trans('admin/groups/titles.update') }} </a>
-    <a href="{{ route('groups.index') }}" class="btn btn-default pull-right">{{ trans('general.back') }}</a>
 @stop
-
 
 
 {{-- Page content --}}
 @section('content')
+    <x-container columns="2">
+        <x-page-column class="col-md-9">
+            <x-box.container>
 
-    <div class="row">
-        <div class="col-md-9">
-            <div class="box box-default">
-                <div class="box-body">
-                    <div class="row">
-                        <div class="col-md-12">
 
 
                                 <table
@@ -36,13 +31,11 @@
                                         "ignoreColumn": ["actions","image","change","checkbox","checkincheckout","icon"]
                                         }'>
                                 </table>
+            </x-box.container>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        </x-page-column>
+
+        <x-page-column class="col-md-3">
 
             @if (is_array($group->decodePermissions()))
             <ul class="list-unstyled">
@@ -55,8 +48,8 @@
                 <p>{{ trans('admin/groups/titles.no_permissions') }}</p>
             @endif
 
-        </div>
-    </div>
+        </x-page-column>
+    </x-container>
 
 @stop
 

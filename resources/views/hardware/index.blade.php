@@ -53,16 +53,8 @@
 
 {{-- Page content --}}
 @section('content')
-
-
-
-<div class="row">
-  <div class="col-md-12">
-    <div class="box box-default">
-      <div class="box-body">
-       
-          <div class="row">
-            <div class="col-md-12">
+    <x-container>
+        <x-box.container>
 
                 @include('partials.asset-bulk-actions', ['status' => $requestStatus])
                    
@@ -93,13 +85,8 @@
                 }'>
               </table>
 
-            </div><!-- /.col -->
-          </div><!-- /.row -->
-        
-      </div><!-- ./box-body -->
-    </div><!-- /.box -->
-  </div>
-</div>
+        </x-box.container>
+    </x-container>
 @stop
 
 @section('moar_scripts')

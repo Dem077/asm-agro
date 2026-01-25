@@ -8,12 +8,9 @@
 
 {{-- Page content --}}
 @section('content')
+    <x-container>
+        <x-box.container>
 
-<div class="row">
-  <div class="col-md-12">
-
-    <div class="box box-default">
-      <div class="box-body">
         <table
                 data-columns="{{ \App\Presenters\ConsumablePresenter::dataTableLayout() }}"
                 data-cookie-id-table="consumablesTable"
@@ -34,11 +31,8 @@
                 }'>
         </table>
 
-      </div><!-- /.box-body -->
-    </div><!-- /.box -->
-
-  </div> <!-- /.col-md-12 -->
-</div> <!-- /.row -->
+        </x-box.container>
+    </x-container>
 @stop
 
 @section('moar_scripts')

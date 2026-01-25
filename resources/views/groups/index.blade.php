@@ -8,16 +8,13 @@
 
 @section('header_right')
 <a href="{{ route('groups.create') }}" class="btn btn-primary text-right"> {{ trans('general.create') }}</a>
-<a href="{{ route('settings.index') }}" class="btn btn-default text-right">{{ trans('general.back') }}</a>
 @stop
 
 
-{{-- Content --}}
+{{-- Page content --}}
 @section('content')
-<div class="row">
-  <div class="col-md-12">
-    <div class="box box-default">
-      <div class="box-body">
+    <x-container>
+        <x-box.container>
             <table
                 data-cookie-id-table="groupsTable"
                 data-side-pagination="server"
@@ -47,10 +44,8 @@
               </tr>
             </thead>
           </table>
-      </div> <!--.box-body-->
-    </div> <!-- /.box.box-default-->
-  </div> <!-- .col-md-12-->
-</div>
+        </x-box.container>
+    </x-container>
 @stop
 @section('moar_scripts')
 @include ('partials.bootstrap-table', ['exportFile' => 'groups-export', 'search' => true])
