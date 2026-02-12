@@ -38,7 +38,7 @@ return array(
         [
             'name' => 'Assets',
             'note' => 'Grants access to the Assets section of the application.',
-    ],
+        ],
 
     'assetsview' => [
         'name' => 'View Assets',
@@ -153,7 +153,7 @@ return array(
     'licensescheckout' => [
         'name' => 'Assign Licenses',
         'note' => 'Allows the user to assign licenses to assets or users.',
-        ],
+    ],
     'licensescheckin' => [
         'name' => 'Unassign Licenses',
         'note' => 'Allows the user to unassign licenses from assets or users.',
@@ -244,20 +244,20 @@ return array(
         'name' => 'Delete Models',
     ],
     'categories'   => [
-        'name' => 'Categories',
-        'note'       => 'Grants access to the Categories section of the application.',
+        'name' => 'Asset Accounts',
+        'note'       => 'Grants access to the Asset Accounts section of the application.',
     ],
     'categoriesview' => [
-        'name' => 'View Categories',
+        'name' => 'View Asset Accounts',
     ],
     'categoriescreate' => [
-        'name' => 'Create New Categories',
+        'name' => 'Create New Asset Accounts',
     ],
     'categoriesedit' => [
-        'name' => 'Edit Categories',
+        'name' => 'Edit Asset Accounts',
     ],
     'categoriesdelete' => [
-        'name' => 'Delete Categories',
+        'name' => 'Delete Asset Accounts',
     ],
     'departments'   => [
         'name' => 'Departments',

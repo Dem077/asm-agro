@@ -8,7 +8,7 @@ return array(
     'create'                             => 'Create Component',
     'edit'                             => 'Edit Component',
     'date'					=> 'Purchase Date',
-    'order'					=> 'Order Number',
+    'order'					=> 'Invoice Number',
     'remaining' 			             => 'Remaining',
     'total' 			                 => 'Total',
     'update'                            => 'Update Component',

@@ -190,7 +190,7 @@ return [
     'email_array'      => 'One or more email addresses is invalid.',
     'checkboxes'           => ':attribute contains invalid options.',
     'radio_buttons'        => ':attribute is invalid.',
-    
+
     'custom' => [
         'alpha_space' => 'The :attribute field contains a character that is not allowed.',
 
@@ -218,7 +218,7 @@ return [
         'ldap_auth_filter_query' => ['not_in' => '<code>uid=samaccountname</code> is probably not a valid auth filter. You probably want <code>uid=</code> '],
         'ldap_filter' => ['regex' => 'This value should probably not be wrapped in parentheses.'],
 
-        ],
+    ],
     /*
     |--------------------------------------------------------------------------
     | Custom Validation Attributes
@@ -232,7 +232,7 @@ return [
 
     'attributes' => [
         'serials.*' => 'Serial Number',
-        'asset_tags.*' => 'Asset Tag',
+        'asset_tags.*' => 'Asset Identifier',
     ],
 
     /*

@@ -27,7 +27,7 @@ return [
     'location'                  => 'Location',
     'asset_tag'                 => 'Assets Tag',
     'asset_name'                => 'Name',
-    'asset_category'            => 'Category',
+    'asset_category'            => 'Asset Account',
     'asset_manufacturer'        => 'Manufacturer',
     'asset_model'               => 'Model',
     'asset_serial'              => 'Serial',

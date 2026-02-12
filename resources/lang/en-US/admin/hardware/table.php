@@ -1,8 +1,7 @@
 <?php
 
 return [
-
-    'asset_tag'   	=> 'Asset Tag',
+    'asset_tag'   	=> 'Asset Identifier',
     'asset_model'       => 'Model',
     'assigned_to'   => 'Assigned To',
     'book_value'  	=> 'Current Value',
@@ -14,14 +13,14 @@ return [
     'diff' 			=> 'Diff',
     'dl_csv' 		=> 'Download CSV',
     'eol' 			=> 'EOL',
-    'id'      		=> 'ID',
+    'id'      		=> 'Asset No',
     'last_checkin_date' => 'Last Checkin Date',
     'location' 		=> 'Location',
     'purchase_cost'	=> 'Cost',
     'purchase_date'	=> 'Purchased',
     'serial'   		=> 'Serial',
     'status'   		=> 'Status',
-    'title'      	=> 'Asset ',
+    'title'      	=> 'Assetas ',
     'image'		    => 'Device Image',
     'days_without_acceptance' => 'Days Without Acceptance',
     'monthly_depreciation' => 'Monthly Depreciation',
