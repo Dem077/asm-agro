@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
@@ -32,6 +33,18 @@ class UserSeeder extends Seeder
         }
 
         $departmentIds = Department::all()->pluck('id');
+
+        // Create the requested custom admin user
+        User::factory()->count(1)
+            ->state(new Sequence(fn($sequence) => [
+                'company_id' => $companyIds->random(),
+                'department_id' => $departmentIds->random(),
+                'permissions' => '{"superuser":"1"}',
+                'email' => 'admin@admin.com',
+                'username' => 'admin',
+                'password' => Hash::make('1234567890'),
+            ]))
+            ->create();
 
         User::factory()->count(1)->firstAdmin()
             ->state(new Sequence(fn($sequence) => [
