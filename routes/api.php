@@ -564,6 +564,19 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'api-throttle:api']], fu
                   'assignedAssets'
               ]
           )->name('api.assets.assigned_assets');
+          Route::get('{asset}/assigned/forms',
+              [
+                  Api\AssetsController::class,
+                  'assignedForms'
+              ]
+          )->name('api.assets.assigned_forms');
+
+          Route::get('{user}/userassigned/forms',
+              [
+                  Api\UsersController::class,
+                  'assigneduserForms'
+              ]
+          )->name('api.user.assigned_forms');
 
           Route::get('{asset}/assigned/accessories',
               [

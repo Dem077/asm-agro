@@ -10,6 +10,7 @@ use App\Http\Requests\CreateMultipleAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Actionlog;
 use App\Http\Requests\UploadFileRequest;
+use App\Models\AssetForm;
 use Illuminate\Support\Facades\Log;
 use App\Models\Asset;
 use App\Models\AssetModel;
@@ -1080,4 +1081,5 @@ class AssetsController extends Controller
 
         return view('hardware/requested', compact('requestedItems'));
     }
+
 }

@@ -1627,6 +1627,13 @@
         }
     }
 
+    function assetFormDownloadFormatter(value, row) {
+        return '<a href="/handover-form/' + row.id + '/download" ' +
+            'class="btn btn-sm bg-purple hidden-print" ' +
+            'data-tooltip="true" title="Download">' +
+            '<i class="fas fa-download"></i></a>';
+    }
+
     // This is used by the UploadedFilesPresenter and the HistoryPresenter
     // It handles the download and inline buttons for files that are uploaded to assets, users, etc
     function fileDownloadButtonsFormatter(row, value) {

@@ -17,6 +17,7 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\AccessoryCheckout;
 use App\Models\Actionlog;
 use App\Models\Asset;
+use App\Models\AssetForm;
 use App\Models\AssetModel;
 use App\Models\CheckoutAcceptance;
 use App\Models\Company;
@@ -1447,5 +1448,24 @@ class AssetsController extends Controller
                 'error_file' => $e->getFile()
             ], $e->getMessage()), 500);
         }
+    }
+
+    public function assignedForms(Request $request, Asset $asset): JsonResponse|array
+    {
+        $this->authorize('view', Asset::class);
+        $this->authorize('view', $asset);
+
+        $forms = AssetForm::where('id', $asset->assetform->id)->get();
+
+        if ($forms->isEmpty()) {
+            return [
+                'total' => 0,
+                'rows' => [],
+            ];
+        }
+        return (new AssetsTransformer)->transformAssetForms(
+            $forms,
+            $forms->count()
+        );
     }
 }

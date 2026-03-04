@@ -18,6 +18,9 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Gate;
@@ -165,6 +168,7 @@ class Asset extends Depreciable
         'next_audit_date',
         'last_checkin',
         'last_checkout',
+        'form_id',
     ];
 
     use Searchable;
@@ -206,6 +210,7 @@ class Asset extends Depreciable
         'model'              => ['name', 'model_number', 'eol'],
         'model.category'     => ['name'],
         'model.manufacturer' => ['name'],
+        'assetform'          => ['form_number'],
     ];
 
     protected static function booted(): void
@@ -425,6 +430,11 @@ class Asset extends Depreciable
     public function company()
     {
         return $this->belongsTo(\App\Models\Company::class, 'company_id');
+    }
+
+    public function assetform() :BelongsTo
+    {
+        return $this->belongsTo(AssetForm::class, 'form_id');
     }
 
     /**
@@ -2311,6 +2321,7 @@ class Asset extends Depreciable
             ->join('depreciations', 'models.depreciation_id', '=', 'depreciations.id')->where('models.depreciation_id', '=', $search);
 
     }
+
 
 
 }

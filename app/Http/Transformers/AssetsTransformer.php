@@ -2,6 +2,7 @@
 
 namespace App\Http\Transformers;
 
+use App\Enums\ActionType;
 use App\Helpers\Helper;
 use App\Models\Accessory;
 use App\Models\AccessoryCheckout;
@@ -302,7 +303,31 @@ class AssetsTransformer
 
         return $array;
     }
+    public function transformAssetForms($forms, $total)
+    {
+        $rows = [];
 
+        foreach ($forms as $form) {
+            $rows[] = [
+                'id' => $form->id,
+                'form_name' => $form->form_number ?? 'Handover Form',
+                'status' => $form->status === ActionType::CheckedOut->value
+                    ? 'Active'
+                    : 'Returned',
+                'user' => [
+                    'id' => optional($form->user)->id,
+                    'name' => optional($form->user)->name,
+                ],
+                'created_at' => optional($form->created_at)->format('Y-m-d H:i:s'),
+                'download_url' => url('/handover-form/'.$form->id.'/download'),
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'rows' => $rows,
+        ];
+    }
     public function transformCheckedoutAccessories($accessory_checkouts, $total)
     {
 

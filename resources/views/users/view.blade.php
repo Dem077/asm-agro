@@ -72,6 +72,15 @@
           </a>
         </li>
 
+          <li>
+              <a href="#forms" data-toggle="tab">
+                          <span class="hidden-lg hidden-md">
+                              <i class="fas fa-pager fa-2x"></i>
+                          </span>
+                  <span class="hidden-xs hidden-sm">{{ trans('general.view_forms') }}
+                          </span>
+              </a>
+          </li>
         <li>
           <a href="#consumables" data-toggle="tab">
             <span class="hidden-lg hidden-md">
@@ -959,7 +968,28 @@
               </tbody>
             </table>
         </div><!-- /accessories-tab -->
+          <div class="tab-pane fade" id="forms">
 
+              <h2 class="box-title" style="float:left">
+                  {{ trans('general.view_forms') }}
+              </h2>
+
+              <table
+                      data-columns="{{ \App\Presenters\AssetFormPresenter::assignedDataTableLayout() }}"
+                      data-cookie-id-table="assetFormsListingTable"
+                      data-id-table="assetFormsListingTable"
+                      data-side-pagination="server"
+                      data-sort-order="desc"
+                      id="assetFormsListingTable"
+                      class="table table-striped snipe-table"
+                      data-url="{{ route('api.user.assigned_forms', ['user' => $user->id]) }}"
+                      data-export-options='{
+                                  "fileName": "export-asset-{{ str_slug($user->name) }}-forms-{{ date('Y-m-d') }}",
+                                  "ignoreColumn": ["actions","checkbox"]
+                                }'>
+              </table>
+
+          </div>
         <div class="tab-pane" id="consumables">
             <table
                     data-cookie-id-table="userConsumableTable"

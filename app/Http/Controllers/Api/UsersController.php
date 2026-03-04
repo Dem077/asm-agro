@@ -15,6 +15,7 @@ use App\Http\Transformers\UsersTransformer;
 use App\Models\Actionlog;
 use App\Models\Asset;
 use App\Models\Accessory;
+use App\Models\AssetForm;
 use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\License;
@@ -926,5 +927,21 @@ class UsersController extends Controller
 
         return response()->json(Helper::formatStandardApiResponse('success', null, $ldap_results['summary']), 200);
 
+    }
+
+    public function assigneduserForms(Request $request, User $user): JsonResponse|array
+    {
+        $this->authorize('view', User::class);
+        $this->authorize('view', $user);
+
+        $query = AssetForm::where('user_id', $user->id);
+
+
+
+        $total = $query->count();
+
+        $forms = $query
+            ->get();
+        return (new AssetsTransformer)->transformAssetForms($forms, $total);
     }
 }

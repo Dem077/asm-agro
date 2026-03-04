@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
@@ -397,6 +398,11 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     public function department()
     {
         return $this->belongsTo(\App\Models\Department::class, 'department_id');
+    }
+
+    public function issuedform(): HasOne
+    {
+        return $this->hasOne(User::class , 'issued_user_id');
     }
 
     /**
@@ -1318,5 +1324,10 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
             $manager = $manager->load('manager')->manager;
         }
         return false;
+    }
+
+    public function assetform():HasMany
+    {
+        return $this->hasMany(AssetForm::class, 'asset_id');
     }
 }

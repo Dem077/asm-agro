@@ -157,6 +157,37 @@
                                 {!! $errors->first('note', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
                             </div>
                         </div>
+
+                        <!-- Generate Form Button -->
+                        <div class="form-group">
+                            <label class="col-md-3 control-label">
+                                {{ trans('general.form') }}
+                            </label>
+                            <div class="col-md-8">
+                                <input type="hidden" id="form_number" name="form_number" value="">
+
+                                <!-- User Selector for Form -->
+                                <div id="form-user-selector" style=" margin-bottom: 10px;">
+                                    <select name="form_user_id" required class="form-control searchable-select" style="width: 100%;" aria-label="form_user_id">
+                                        <option value="">Select User for Form</option>
+                                        @foreach(\App\Models\User::orderBy('first_name')->orderBy('last_name')->get() as $user)
+                                            <option value="{{ $user->id }}">{{ $user->displayName ." ( Emp No: " .$user->employee_num." ) " }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                    <!-- Download Form Checkbox -->
+                                    <div class="form-group {{ $errors->has('download_form') ? 'has-error' : '' }}">
+                                        <div class="col-md-9">
+                                            <label class="form-control">
+                                                <input type="checkbox" name="download_form" id="download_form" value="1" {{ old('download_form', true) ? 'checked' : '' }}>
+                                                <span>{{ trans('general.download_form') }}</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                            </div>
+                        </div>
+
                         
                         <!-- Custom fields -->
                         @include("models/custom_fields_form", [
@@ -227,4 +258,19 @@
 
 @section('moar_scripts')
     @include('partials/assets-assigned')
+
+    <script>
+        $(document).ready(function() {
+            $('.searchable-select').select2({
+                placeholder: 'Search for a user...',
+                allowClear: true,
+                width: '100%'
+            });
+        });
+    </script>
+    <script>
+        @if(session('download_url'))
+        window.open("{{ session('download_url') }}", "_blank");
+        @endif
+    </script>
 @stop

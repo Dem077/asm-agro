@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Account;
 use App\Http\Controllers\ActionlogController;
-use App\Http\Controllers\Api\ImportController;
+use App\Http\Controllers\Assets\AssetHandoverController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -17,17 +17,17 @@ use App\Http\Controllers\DepreciationsController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LabelsController;
-use App\Http\Controllers\UploadedFilesController;
 use App\Http\Controllers\ManufacturersController;
 use App\Http\Controllers\ModalController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ReportTemplatesController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\ReportTemplatesController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\StatuslabelsController;
 use App\Http\Controllers\SuppliersController;
+use App\Http\Controllers\UploadedFilesController;
 use App\Http\Controllers\ViewAssetsController;
 use App\Livewire\Importer;
 use App\Models\ReportTemplate;
@@ -79,6 +79,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::resource('manufacturers', ManufacturersController::class);
 
     Route::post('manufacturers/bulk/delete', [BulkManufacturersController::class, 'destroy'])->name('manufacturers.bulk.delete');
+
+    Route::get('/handover-form/{asset_form_id}/download', [AssetHandoverController::class, 'downloadPdf'])->name('handover-form.download');
 
     /*
     * Suppliers
@@ -475,6 +477,7 @@ Route::group(['prefix' => 'account', 'middleware' => ['auth']], function () {
 });
 
 Route::group(['middleware' => ['auth']], function () {
+
     Route::post('notes', [NotesController::class, 'store'])->name('notes.store');
 });
 

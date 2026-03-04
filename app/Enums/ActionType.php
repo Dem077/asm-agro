@@ -30,4 +30,8 @@ enum ActionType: string
     // File Uploads
     case Uploaded = 'uploaded';
     case UploadDeleted = 'upload deleted';
+
+    case Returned = 'returned';
+
+    case CheckedOut = 'checked_out';
 }
