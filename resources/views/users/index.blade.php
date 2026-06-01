@@ -18,6 +18,18 @@
 
 @section('header_right')
 
+    @can('update', \App\Models\User::class)
+        @if (config('services.hr_api.base_url') && config('services.hr_api.api_key'))
+            <form method="POST" action="{{ route('users.hr-sync') }}" class="pull-right" style="margin-left: 8px;"
+                  onsubmit="return confirm(@json(trans('admin/users/general.hr_sync_confirm')));">
+                @csrf
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> {{ trans('admin/users/general.hr_sync') }}
+                </button>
+            </form>
+        @endif
+    @endcan
+
     @can('create', \App\Models\User::class)
         @if ($snipeSettings->ldap_enabled == 1)
             <a href="{{ route('ldap/user') }}" class="btn btn-theme pull-right"><i class="fas fa-sitemap"></i> {{trans('general.ldap_sync')}}</a>
@@ -29,6 +41,17 @@
 @section('content')
     <x-container>
         <x-box.container>
+
+            @if (Session::get('hr_sync_summary'))
+                <div class="alert alert-success">
+                    <strong>{{ trans('general.sync_results') }}</strong>
+                    <ul class="mb-0" style="margin-top: 8px;">
+                        @foreach (Session::get('hr_sync_summary') as $key => $count)
+                            <li>{{ trans('admin/users/general.hr_sync_'.$key) }}: <strong>{{ $count }}</strong></li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             @include('partials.users-bulk-actions')
 

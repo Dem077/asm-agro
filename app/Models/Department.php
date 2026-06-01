@@ -52,6 +52,7 @@ class Department extends SnipeModel
     protected $fillable = [
         'created_by',
         'name',
+        'external_id',
         'phone',
         'fax',
         'location_id',

@@ -27,6 +27,11 @@ Route::group(['prefix' => 'users', 'middleware' => ['auth']], function () {
         ]
     );
 
+    Route::post(
+        'hr-sync',
+        [Users\HrSyncController::class, 'store']
+    )->name('users.hr-sync');
+
     Route::get(
         'export',
         [

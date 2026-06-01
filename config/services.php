@@ -48,4 +48,11 @@ return [
         'maps_api_key' => env('GOOGLE_MAPS_API'),
     ],
 
+    'hr_api' => [
+        'base_url' => rtrim(env('HR_API_BASE_URL', ''), '/'),
+        'api_key' => env('HR_API_KEY'),
+        'users_path' => env('HR_API_USERS_PATH', '/api/users/active'),
+        'departments_path' => env('HR_API_DEPARTMENTS_PATH', '/api/departments/active'),
+    ],
+
 ];
