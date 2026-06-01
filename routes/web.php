@@ -81,6 +81,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('manufacturers/bulk/delete', [BulkManufacturersController::class, 'destroy'])->name('manufacturers.bulk.delete');
 
     Route::get('/handover-form/{asset_form_id}/download', [AssetHandoverController::class, 'downloadPdf'])->name('handover-form.download');
+    Route::get('/return-form/{asset_form_id}/download', [AssetHandoverController::class, 'downloadReturnPdf'])->name('return-form.download');
 
     /*
     * Suppliers

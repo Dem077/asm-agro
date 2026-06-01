@@ -96,6 +96,13 @@ return [
         'success' => 'Asset checked out successfully.|Assets checked out successfully.',
     ],
 
+    'multi-checkin' => [
+        'error'   => 'Asset was not checked in, please try again|Assets were not checked in, please try again',
+        'success' => 'Asset checked in successfully.|Assets checked in successfully.',
+        'not_checked_out' => 'One or more selected assets are not checked out and were removed from this check-in.',
+        'no_assets_selected' => 'You must select at least one checked-out asset.',
+    ],
+
     'checkin' => [
         'error'   		=> 'Asset was not checked in, please try again',
         'success' 		=> 'Asset checked in successfully.',

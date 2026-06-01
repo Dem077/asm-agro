@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Assets;
 
-use App\Enums\ActionType;
+use App\Events\CheckoutableCheckedIn;
 use App\Helpers\Helper;
 use App\Http\Controllers\CheckInOutRequest;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkAssetCheckinRequest;
+use App\Http\Traits\ManagesAssetForms;
+use App\Http\Traits\MigratesLegacyAssetLocations;
+use App\Models\CheckoutAcceptance;
+use App\Models\LicenseSeat;
+use App\Models\User;
 use App\Models\Asset;
-use App\Models\AssetForm;
 use App\Models\AssetModel;
 use App\Models\Statuslabel;
 use App\Models\Setting;
@@ -23,11 +28,14 @@ use App\Http\Requests\AssetCheckoutRequest;
 use App\Models\CustomField;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class BulkAssetsController extends Controller
 {
     use CheckInOutRequest;
+    use ManagesAssetForms;
+    use MigratesLegacyAssetLocations;
     private $downloadform;
     /**
      * Display the bulk edit page.
@@ -68,6 +76,11 @@ class BulkAssetsController extends Controller
 
             $request->session()->flashInput(['selected_assets' => $asset_ids]);
             return redirect()->route('hardware.bulkcheckout.show');
+        }
+
+        if ($request->input('bulk_actions') === 'checkin') {
+            $request->session()->flashInput(['selected_assets' => $asset_ids]);
+            return redirect()->route('hardware.bulkcheckin.show');
         }
 
         if ($request->input('bulk_actions') === 'maintenance') {
@@ -706,48 +719,51 @@ class BulkAssetsController extends Controller
             }
 
 
-                $form_assigned_user = $request->input('form_user_id');
-
+            $formUserId = $this->resolveHandoverFormUserId(
+                $request->filled('form_user_id') ? (int) $request->input('form_user_id') : null,
+                $target
+            );
 
             $errors = [];
-            DB::transaction(function () use ($target, $form_assigned_user  ,$admin, $checkout_at, $expected_checkin, &$errors, $assets, $request) { //NOTE: $errors is passsed by reference!
+            $formResult = null;
+
+            DB::transaction(function () use ($request, $target, $formUserId, $admin, $checkout_at, $expected_checkin, &$errors, $assets, &$formResult) {
                 foreach ($assets as $asset) {
                     $this->authorize('checkout', $asset);
 
-                    // See if there is a status label passed
                     if ($request->filled('status_id')) {
                         $asset->status_id = $request->input('status_id');
                     }
 
                     $checkout_success = $asset->checkOut($target, $admin, $checkout_at, $expected_checkin, e($request->input('note')), $asset->name, null);
 
-                    //TODO - I think this logic is duplicated in the checkOut method?
                     if ($target->location_id != '') {
                         $asset->location_id = $target->location_id;
-                        // TODO - I don't know why this is being saved without events
                         $asset::withoutEvents(function () use ($asset) {
                             $asset->save();
                         });
                     }
 
-                    if (!$checkout_success) {
+                    if (! $checkout_success) {
                         $errors = array_merge_recursive($errors, $asset->getErrors()->toArray());
                     }
                 }
-                $formNumber = $this->generateFormNumber($form_assigned_user , $assets);
-                $this->downloadform = $request->input('download_form');
-                if ($this->downloadform) {
 
-
-                    return redirect()->route('handover-form.download', $formNumber['form_id'])->with([
-                        'success' => trans('admin/hardware/message.checkout.success')
-                    ]);
+                if (empty($errors) && $formUserId) {
+                    $formResult = $this->createHandoverForm($formUserId, $assets);
                 }
             });
 
+            $this->downloadform = $request->input('download_form');
+
+            if (empty($errors) && $this->downloadform && $formResult) {
+                return redirect()->route('handover-form.download', $formResult['form_id'])->with([
+                    'success' => trans_choice('admin/hardware/message.multi-checkout.success', count($asset_ids)),
+                ]);
+            }
+
             if (! $errors) {
-                // Redirect to the new asset page
-                return redirect()->to('hardware')->with('success', trans_choice('admin/hardware/message.multi-checkout.success', $asset_ids));
+                return redirect()->to('hardware')->with('success', trans_choice('admin/hardware/message.multi-checkout.success', count($asset_ids)));
             }
             // Redirect to the asset management page with error
             return redirect()->route('hardware.bulkcheckout.show')->withInput()->with('error', trans_choice('admin/hardware/message.multi-checkout.error', $asset_ids))->withErrors($errors);
@@ -756,6 +772,155 @@ class BulkAssetsController extends Controller
         }
         
     }
+    /**
+     * Show bulk check-in page.
+     */
+    public function showCheckin(): View
+    {
+        $this->authorize('checkin', Asset::class);
+
+        $alreadyCheckedIn = collect();
+
+        if (old('selected_assets') && is_array(old('selected_assets'))) {
+            $assets = Asset::findMany(old('selected_assets'));
+
+            [$assignable, $alreadyCheckedIn] = $assets->partition(function (Asset $asset) {
+                return (bool) $asset->assigned_to;
+            });
+
+            session()->flashInput(['selected_assets' => $assignable->pluck('id')->values()->toArray()]);
+        }
+
+        return view('hardware/bulk-checkin', [
+            'statusLabel_list' => Helper::statusLabelList(),
+            'removed_assets' => $alreadyCheckedIn,
+        ]);
+    }
+
+    /**
+     * Process bulk check-in for selected deployed assets.
+     */
+    public function storeCheckin(BulkAssetCheckinRequest $request): RedirectResponse
+    {
+        $this->authorize('checkin', Asset::class);
+
+        $assetIds = array_filter($request->input('selected_assets', []));
+
+        if (empty($assetIds)) {
+            return redirect()->route('hardware.bulkcheckin.show')
+                ->withInput()
+                ->with('error', trans('admin/hardware/message.multi-checkin.no_assets_selected'));
+        }
+
+        $assets = Asset::with('model', 'assetform')->findOrFail($assetIds);
+
+        $notCheckedOut = $assets->filter(fn (Asset $asset) => ! $asset->assigned_to);
+        if ($notCheckedOut->isNotEmpty()) {
+            return redirect()->route('hardware.bulkcheckin.show')
+                ->withInput()
+                ->with('error', trans('admin/hardware/message.multi-checkin.not_checked_out'));
+        }
+
+        $errors = [];
+        $checkedInAssets = collect();
+        $admin = auth()->user();
+
+        $checkinAt = date('Y-m-d H:i:s');
+        if ($request->filled('checkin_at') && $request->input('checkin_at') != date('Y-m-d')) {
+            $checkinAt = $request->input('checkin_at');
+        }
+
+        DB::transaction(function () use ($request, $assets, $admin, $checkinAt, &$errors, &$checkedInAssets) {
+            foreach ($assets as $asset) {
+                $this->authorize('checkin', $asset);
+
+                if (! $asset->model) {
+                    $errors[$asset->id][] = trans('admin/hardware/general.model_invalid_fix');
+
+                    continue;
+                }
+
+                $target = $asset->assignedTo;
+                if (is_null($target)) {
+                    $errors[$asset->id][] = trans('admin/hardware/message.checkin.already_checked_in');
+
+                    continue;
+                }
+
+                $asset->expected_checkin = null;
+                $asset->assignedTo()->disassociate($asset);
+                $asset->accepted = null;
+
+                if ($request->filled('status_id')) {
+                    $asset->status_id = $request->input('status_id');
+                }
+
+                $asset->customFieldsForCheckinCheckout('display_checkin');
+                $this->migrateLegacyLocations($asset);
+                $asset->location_id = $asset->rtd_location_id;
+
+                if ($request->filled('location_id')) {
+                    $asset->location_id = $request->input('location_id');
+
+                    if ($request->input('update_default_location') == 0) {
+                        $asset->rtd_location_id = $request->input('location_id');
+                    }
+                }
+
+                $originalValues = $asset->getRawOriginal();
+                $asset->last_checkin = $checkinAt;
+
+                if ($request->filled('checkin_at') && $request->input('checkin_at') != date('Y-m-d')) {
+                    $originalValues['action_date'] = $checkinAt;
+                }
+
+                $asset->licenseseats->each(function (LicenseSeat $seat) {
+                    $seat->update(['assigned_to' => null]);
+                });
+
+                CheckoutAcceptance::pending()->whereHasMorph(
+                    'checkoutable',
+                    [Asset::class],
+                    function (Builder $query) use ($asset) {
+                        $query->where('id', $asset->id);
+                    }
+                )->get()->each(function ($acceptance) {
+                    $acceptance->delete();
+                });
+
+                if ($asset->save()) {
+                    event(new CheckoutableCheckedIn($asset, $target, $admin, $request->input('note'), $checkinAt, $originalValues));
+                    $checkedInAssets->push($asset);
+                } else {
+                    $errors = array_merge_recursive($errors, $asset->getErrors()->toArray());
+                }
+            }
+        });
+
+        if (! empty($errors)) {
+            return redirect()->route('hardware.bulkcheckin.show')
+                ->withInput()
+                ->with('error', trans_choice('admin/hardware/message.multi-checkin.error', count($assetIds)))
+                ->withErrors($errors);
+        }
+
+        $formResult = null;
+        if ($checkedInAssets->isNotEmpty()) {
+            $formResult = $this->processBulkAssetReturns($checkedInAssets);
+        }
+
+        if ($request->input('download_form') && $formResult) {
+            return redirect()->route('return-form.download', $formResult['form_id'])->with([
+                'success' => trans_choice('admin/hardware/message.multi-checkin.success', count($assetIds)),
+            ]);
+        }
+
+        return redirect()->to('hardware')->with(
+            'success',
+            trans_choice('admin/hardware/message.multi-checkin.success', count($assetIds))
+        );
+    }
+
     public function restore(Request $request) : RedirectResponse
     {
         $this->authorize('update', Asset::class);
@@ -822,68 +987,4 @@ class BulkAssetsController extends Controller
             ->with('modelNames', $modelNames);
     }
 
-    public function generateFormNumber($user, $assets)
-    {
-        $assets = collect($assets);
-        $year = date('Y');
-
-        // Get last form number
-        $lastForm = AssetForm::where('form_number', 'like', "AGRO/HN/{$year}/%")
-            ->orderBy('form_number', 'desc')
-            ->first();
-
-        if ($lastForm && preg_match('/AGRO\/HN\/\d{4}\/(\d+)/', $lastForm->form_number, $matches)) {
-            $nextNumber = intval($matches[1]) + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        $formNumber = sprintf('AGRO/HN/%s/%02d', $year, $nextNumber);
-
-        // Ensure collection
-        $assets = collect($assets);
-
-        $assetsData = $assets->map(function ($asset) {
-
-            $asset->load([
-                'assignedAccessories.accessory:id,name'
-            ]);
-
-            return [
-                'id'   => $asset->id,
-                'name' => $asset->name,
-                'assigned_accessories' => $asset->assignedAccessories->map(function ($assigned) {
-                    if (!$assigned->accessory) {
-                        return null;
-                    }
-
-                    return [
-                        'id'   => $assigned->accessory->id,
-                        'name' => $assigned->accessory->name,
-                    ];
-                })->filter()->values(),
-            ];
-        })->values();
-
-        // Create form
-        $createdform = AssetForm::create([
-            'form_number' => $formNumber,
-            'user_id' => $user,
-            'status' => ActionType::CheckedOut,
-            'issued_user_id' => Auth::id(),
-            'assets' => ['assets' => $assetsData],
-        ]);
-
-        // Update each asset
-        foreach ($assets as $asset) {
-            $asset->update([
-                'form_id' => $createdform->id,
-            ]);
-        }
-
-        return [
-            'form_number' => $formNumber,
-            'form_id' => $createdform->id
-        ];
-    }
 }

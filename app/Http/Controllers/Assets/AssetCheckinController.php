@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Assets;
 use App\Events\CheckoutableCheckedIn;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Traits\ManagesAssetForms;
 use App\Http\Requests\AssetCheckinRequest;
 use App\Http\Traits\MigratesLegacyAssetLocations;
 use App\Models\Asset;
 use App\Models\CheckoutAcceptance;
 use App\Models\LicenseSeat;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use \Illuminate\Contracts\View\View;
 use \Illuminate\Http\RedirectResponse;
@@ -18,6 +20,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AssetCheckinController extends Controller
 {
+    use ManagesAssetForms;
     use MigratesLegacyAssetLocations;
 
     /**
@@ -54,6 +57,9 @@ class AssetCheckinController extends Controller
             'App\Models\Location' => trans('admin/hardware/form.redirect_to_type', ['type' => trans('general.location')]),
             default => trans('admin/hardware/form.redirect_to_type', ['type' => trans('general.user')]),
         };
+
+        $asset->load('assetform');
+
         return view('hardware/checkin', compact('asset', 'target_option'))
             ->with('item', $asset)
             ->with('statusLabel_list', Helper::statusLabelList())
@@ -151,12 +157,24 @@ class AssetCheckinController extends Controller
         $asset->customFieldsForCheckinCheckout('display_checkin');
 
         if ($asset->save()) {
-
             event(new CheckoutableCheckedIn($asset, $target, auth()->user(), $request->input('note'), $checkin_at, $originalValues));
+
+            $formResult = null;
+            if ($asset->form_id) {
+                $formResult = $this->processAssetReturn([$asset->load('assetform')]);
+            }
+
+            if ($request->input('download_form') && $formResult) {
+                return redirect()->route('return-form.download', $formResult['form_id'])->with([
+                    'success' => trans('admin/hardware/message.checkin.success'),
+                ]);
+            }
+
             return Helper::getRedirectOption($request, $asset->id, 'Assets')
                 ->with('success', trans('admin/hardware/message.checkin.success'));
         }
         // Redirect to the asset management page with error
         return redirect()->route('hardware.index')->with('error', trans('admin/hardware/message.checkin.error').$asset->getErrors());
     }
+
 }

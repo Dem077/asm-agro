@@ -1400,6 +1400,11 @@
                                                 {{ trans('general.quickscan_checkin') }}
                                             </a>
                                         </li>
+                                        <li{!! (request()->is('hardware/bulkcheckin') ? ' class="active"' : '') !!}>
+                                            <a href="{{ route('hardware.bulkcheckin.show') }}">
+                                                {{ trans('admin/hardware/general.bulk_checkin') }}
+                                            </a>
+                                        </li>
                                     @endcan
 
                                     @can('checkout', \App\Models\Asset::class)

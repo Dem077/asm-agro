@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Asset Handover Form</title>
+    <title>Asset Return Form</title>
 
     <style>
         @page {
@@ -89,30 +89,29 @@
 <body>
 
 {{-- ================= HEADER ================= --}}
-<table  class="no-border">
+<table class="no-border">
     <tr>
-        <td style=" text-align: center;" colspan="2">
-            <h1   >ASSET HANDOVER FORM</h1>
+        <td style="text-align: center;" colspan="2">
+            <h1>ASSET RETURN FORM</h1>
         </td>
     </tr>
     <tr>
         <td width="60%">
-
             <div class="sub-info">
-                <strong>Document No:</strong> {{ $assetForm->form_number ?? '' }}<br>
+                <strong>Return Document No:</strong> {{ $assetForm->return_form_number ?? '' }}<br>
+                <strong>Original Handover No:</strong> {{ $assetForm->form_number ?? '' }}<br>
                 <strong>Handover Date:</strong> {{ $assetForm->created_at ? \Carbon\Carbon::parse($assetForm->created_at)->format('d-M-Y') : '' }}<br>
-                <strong>Purpose:</strong> Official Asset Allocation Record
+                <strong>Return Date:</strong> {{ $returnDate ? \Carbon\Carbon::parse($returnDate)->format('d-M-Y') : now()->format('d-M-Y') }}<br>
+                <strong>Purpose:</strong> Official Asset Return Record
             </div>
         </td>
         <td width="40%" style="text-align: right">
-
-
-                <img src="{{ Storage::disk('public')->url($settings) }}"
-                     alt="{{$settings}} logo" height="120">
-
+            <img src="{{ Storage::disk('public')->url($settings) }}"
+                 alt="Company logo" height="120">
         </td>
     </tr>
 </table>
+
 {{-- ================= EMPLOYEE INFORMATION ================= --}}
 <div class="section-title">Employee Information</div>
 
@@ -140,7 +139,7 @@
 </table>
 
 {{-- ================= ASSET DETAILS ================= --}}
-<div class="section-title">Asset Details</div>
+<div class="section-title">Returned Asset Details</div>
 
 @php $assets = $assets ?? collect(); @endphp
 
@@ -158,7 +157,7 @@
     </tr>
     </thead>
     <tbody>
-    @foreach($assets as $asset)
+    @forelse($assets as $asset)
         <tr>
             <td>{{ $loop->iteration }}</td>
             <td>{{ $asset->asset_tag ?? '' }}</td>
@@ -169,14 +168,16 @@
             <td>{{ $asset->condition ?? '' }}</td>
             <td>{{ $asset->remarks ?? '' }}</td>
         </tr>
-         @endforeach
+    @empty
+        <tr>
+            <td colspan="8" style="text-align: center">-</td>
+        </tr>
+    @endforelse
     </tbody>
 </table>
 
 {{-- ================= ACCESSORIES ================= --}}
-<div class="section-title">Accessories</div>
-
-
+<div class="section-title">Returned Accessories</div>
 
 <table>
     <thead>
@@ -190,70 +191,70 @@
     </tr>
     </thead>
     <tbody>
-            @if($accessories->isEmpty())
+        @if($accessories->isEmpty())
+            <tr>
+                <td colspan="6" style="text-align: center">-</td>
+            </tr>
+        @else
+            @foreach($accessories as $accessory)
                 <tr>
-                    <td colspan="6" style="text-align: center"> -</td>
+                    <td>{{ $accessory->name }}</td>
+                    <td>{{ $accessory->manufacturer->name ?? '' }}</td>
+                    <td>{{ $accessory->model_number ?? '' }}</td>
+                    <td>{{ $accessory->qty }}</td>
+                    <td>{{ $accessory->condition ?? '' }}</td>
+                    <td>{{ $accessory->note ?? '' }}</td>
                 </tr>
-            @else
-                @foreach($accessories as $accessory)
-                    <tr>
-                        <td>{{ $accessory->name }}</td>
-                        <td>{{ $accessory->manufacturer->name ?? '' }}</td>
-                        <td>{{ $accessory->model_number ?? '' }}</td>
-                        <td>{{ $accessory->qty }}</td>
-                        <td>{{ $accessory->condition ?? '' }}</td>
-                        <td>{{ $firstItem->note ?? '' }}</td>
-                    </tr>
-                @endforeach
-            @endif
+            @endforeach
+        @endif
     </tbody>
 </table>
 
 {{-- ================= TERMS ================= --}}
-<div class="section-title">Terms & Conditions</div>
+<div class="section-title">Return Acknowledgment</div>
 
 <div class="terms">
-    I acknowledge receipt of the above listed assets in good working condition and agree that:
+    I confirm that the above listed assets and accessories have been returned to the company and that:
     <ul>
-        <li>Assets are for official use only.</li>
-        <li>I am responsible for safekeeping and proper usage.</li>
-        <li>Assets must not be transferred without approval.</li>
-        <li>Assets must be returned upon request, resignation, or termination.</li>
-        <li>Loss or damage due to negligence may result in recovery of cost.</li>
+        <li>All items listed were originally issued under handover document {{ $assetForm->form_number ?? 'N/A' }}.</li>
+        <li>I have returned the assets in the condition stated above.</li>
+        <li>I no longer hold responsibility for the safekeeping of these returned items.</li>
+        <li>Any discrepancies or damages have been noted in the remarks column where applicable.</li>
     </ul>
 </div>
 
-{{-- ================= SIGNATURE SECTION (TABLE LAYOUT ONLY) ================= --}}
+{{-- ================= SIGNATURE SECTION ================= --}}
 <br><br>
 
 <table class="no-border">
     <tr>
         <td width="50%" style="padding-right:20px;">
-            <strong>Acknowledgment</strong><br><br>
+            <strong>Returned By</strong><br><br>
             <div class="signature-line"></div>
             Name: {{ optional($assetForm->user)->name ?? '' }}<br>
             Designation: {{ optional($assetForm->user)->jobtitle ?? '' }}<br>
-            Date: {{ now()->format('d M Y')}}<br>
+            Date: {{ $returnDate ? \Carbon\Carbon::parse($returnDate)->format('d M Y') : now()->format('d M Y') }}<br>
             Signature:
         </td>
 
         <td width="50%" style="padding-left:20px;">
-            <strong>Issued By</strong><br><br>
+            <strong>Received By</strong><br><br>
             <div class="signature-line"></div>
-            Name: {{ optional($assetForm->issued_user)->name ?? '' }}<br>
-            Designation: {{ optional($assetForm->issued_user)->jobtitle ?? '' }}<br>
-            Date: {{ now()->format('d M Y')}}<br>
+            Name: {{ optional($assetForm->return_issued_user)->name ?? '' }}<br>
+            Designation: {{ optional($assetForm->return_issued_user)->jobtitle ?? '' }}<br>
+            Date: {{ $returnDate ? \Carbon\Carbon::parse($returnDate)->format('d M Y') : now()->format('d M Y') }}<br>
             Signature:
         </td>
     </tr>
 </table>
+
 <!--mpdf
 <htmlpagefooter name="custom-footer">
 <div class="footer">
 AGRO NATIONAL CORPORATION PVT LTD<br>
 H. Orchid, 1st Floor, Ameenee Magu, Malé 20095, Maldives<br><br>
  Page {PAGENO} of {nbpg}
-
+</div>
 </htmlpagefooter>
 <sethtmlpagefooter name="custom-footer" value="on" show-this-page="1" />
 mpdf-->

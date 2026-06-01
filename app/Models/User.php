@@ -402,7 +402,12 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
 
     public function issuedform(): HasOne
     {
-        return $this->hasOne(User::class , 'issued_user_id');
+        return $this->hasOne(AssetForm::class , 'issued_user_id');
+    }
+
+    public function returnissuedform(): HasOne
+    {
+        return $this->hasOne(AssetForm::class , 'return_issued_user_id');
     }
 
     /**

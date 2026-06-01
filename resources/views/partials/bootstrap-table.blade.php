@@ -1628,10 +1628,23 @@
     }
 
     function assetFormDownloadFormatter(value, row) {
-        return '<a href="/handover-form/' + row.id + '/download" ' +
-            'class="btn btn-sm bg-purple hidden-print" ' +
-            'data-tooltip="true" title="Download">' +
-            '<i class="fas fa-download"></i></a>';
+        var html = '';
+
+        if (row.handover_download_url) {
+            html += '<a href="' + row.handover_download_url + '" ' +
+                'class="btn btn-sm bg-purple hidden-print" ' +
+                'data-tooltip="true" title="{{ trans('admin/hardware/form.handover_form') }}" target="_blank">' +
+                '<i class="fas fa-download"></i> H</a> ';
+        }
+
+        if (row.return_download_url) {
+            html += '<a href="' + row.return_download_url + '" ' +
+                'class="btn btn-sm btn-primary hidden-print" ' +
+                'data-tooltip="true" title="{{ trans('admin/hardware/form.return_form') }}" target="_blank">' +
+                '<i class="fas fa-download"></i> R</a>';
+        }
+
+        return html || '-';
     }
 
     // This is used by the UploadedFilesPresenter and the HistoryPresenter

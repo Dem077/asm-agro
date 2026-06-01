@@ -179,6 +179,35 @@
                                                 'show_custom_fields_type' => 'checkin'
                                         ])
 
+                                        <!-- Asset Forms -->
+
+                                        @if($asset->assetform)
+                                        <div class="form-group">
+                                            <label for="handover_form" class="col-sm-3 control-label">
+                                                Active {{ trans('admin/hardware/form.handover_form') }}
+                                            </label>
+                                            <div class="col-md-8">
+                                                <p class="form-control-static">
+                                                    {{ $asset->assetform->form_number }}
+                                                    <a href="{{ route('handover-form.download', $asset->assetform->id) }}"
+                                                       class="btn btn-sm btn-primary"
+                                                       style="margin-left:10px;"
+                                                       target="_blank">
+                                                        <i class="fas fa-download"></i> View
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group {{ $errors->has('download_form') ? 'has-error' : '' }}">
+                                            <div class="col-md-8 col-md-offset-3">
+                                                <label class="form-control">
+                                                    <input type="checkbox" name="download_form" id="download_form" value="1" {{ old('download_form', true) ? 'checked' : '' }}>
+                                                    <span>{{ trans('general.download_form') }} ({{ trans('admin/hardware/form.return_form') }})</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @endif
 
                     </div> <!--/.box-body-->
                 </div> <!--/.box-body-->

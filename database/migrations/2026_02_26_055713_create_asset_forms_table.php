@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('asset_forms', function (Blueprint $table) {
             $table->id();
             $table->string('form_number')->unique();
+            $table->json('assets')->nullable();
+            $table->json('returned_assets')->nullable();
             $table->enum('status', ['checked_out', 'returned'])->default('checked_out');
 
             $table->unsignedInteger('user_id');

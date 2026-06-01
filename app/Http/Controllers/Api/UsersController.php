@@ -934,14 +934,11 @@ class UsersController extends Controller
         $this->authorize('view', User::class);
         $this->authorize('view', $user);
 
-        $query = AssetForm::where('user_id', $user->id);
-
-
-
-        $total = $query->count();
-
-        $forms = $query
+        $forms = AssetForm::where('user_id', $user->id)
+            ->with(['user', 'issued_user'])
+            ->orderByDesc('created_at')
             ->get();
-        return (new AssetsTransformer)->transformAssetForms($forms, $total);
+
+        return (new AssetsTransformer)->transformAssetForms($forms, $forms->count());
     }
 }

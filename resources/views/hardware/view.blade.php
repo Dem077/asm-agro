@@ -1404,7 +1404,7 @@
                         </h2>
 
                         <table
-                                data-columns="{{ \App\Presenters\AssetFormPresenter::assignedDataTableLayout() }}"
+                                data-columns="{{ \App\Presenters\AssetFormPresenter::assignedDataTableLayout(true) }}"
                                 data-cookie-id-table="assetFormsListingTable"
                                 data-id-table="assetFormsListingTable"
                                 data-side-pagination="server"

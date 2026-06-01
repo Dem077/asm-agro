@@ -9,6 +9,7 @@ use App\Http\Requests\AssetCheckoutRequest;
 use App\Http\Requests\FilterRequest;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
+use App\Http\Traits\ManagesAssetForms;
 use App\Http\Traits\MigratesLegacyAssetLocations;
 use App\Http\Transformers\AssetsTransformer;
 use App\Http\Transformers\ComponentsTransformer;
@@ -50,6 +51,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class AssetsController extends Controller
 {
+    use ManagesAssetForms;
     use MigratesLegacyAssetLocations;
 
     /**
@@ -625,6 +627,10 @@ class AssetsController extends Controller
             $assets = $assets->RTD();
         }
 
+        if ($request->filled('assetStatusType') && $request->input('assetStatusType') === 'Deployed') {
+            $assets = $assets->Deployed();
+        }
+
         if ($request->filled('search')) {
             $assets = $assets->AssignedSearch($request->input('search'));
         }
@@ -1067,14 +1073,29 @@ class AssetsController extends Controller
                 $acceptance->delete();
             });
 
+        $hadHandoverForm = (bool) $asset->form_id;
+
         if ($asset->save()) {
             event(new CheckoutableCheckedIn($asset, $target, auth()->user(), $request->input('note'), $checkin_at, $originalValues));
 
-            return response()->json(Helper::formatStandardApiResponse('success', [
+            $formResult = null;
+            if ($hadHandoverForm) {
+                $formResult = $this->processAssetReturn([$asset->load('assetform')]);
+            }
+
+            $payload = [
                 'asset_tag' => e($asset->asset_tag),
                 'model' => e($asset->model->name),
-                'model_number' => e($asset->model->model_number)
-            ], trans('admin/hardware/message.checkin.success')));
+                'model_number' => e($asset->model->model_number),
+            ];
+
+            if ($formResult) {
+                $payload['return_form_id'] = $formResult['form_id'];
+                $payload['return_form_number'] = $formResult['form_number'];
+                $payload['return_form_download_url'] = route('return-form.download', $formResult['form_id']);
+            }
+
+            return response()->json(Helper::formatStandardApiResponse('success', $payload, trans('admin/hardware/message.checkin.success')));
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
@@ -1455,14 +1476,11 @@ class AssetsController extends Controller
         $this->authorize('view', Asset::class);
         $this->authorize('view', $asset);
 
-        $forms = AssetForm::where('id', $asset->assetform->id)->get();
+        $forms = AssetForm::forAsset($asset->id)
+            ->with(['user', 'issued_user'])
+            ->orderByDesc('created_at')
+            ->get();
 
-        if ($forms->isEmpty()) {
-            return [
-                'total' => 0,
-                'rows' => [],
-            ];
-        }
         return (new AssetsTransformer)->transformAssetForms(
             $forms,
             $forms->count()

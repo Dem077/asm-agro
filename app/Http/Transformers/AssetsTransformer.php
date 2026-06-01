@@ -308,18 +308,31 @@ class AssetsTransformer
         $rows = [];
 
         foreach ($forms as $form) {
+            $isReturned = $form->status === ActionType::Returned->value;
+
             $rows[] = [
                 'id' => $form->id,
-                'form_name' => $form->form_number ?? 'Handover Form',
-                'status' => $form->status === ActionType::CheckedOut->value
-                    ? 'Active'
-                    : 'Returned',
+                'form_name' => $form->form_number ?? '-',
+                'return_form_number' => $form->return_form_number ?? '-',
+                'status' => $isReturned
+                    ? trans('admin/hardware/form.returned')
+                    : trans('admin/hardware/form.active'),
                 'user' => [
                     'id' => optional($form->user)->id,
-                    'name' => optional($form->user)->name,
+                    'name' => optional($form->user)->display_name ?? optional($form->user)->name,
                 ],
-                'created_at' => optional($form->created_at)->format('Y-m-d H:i:s'),
-                'download_url' => url('/handover-form/'.$form->id.'/download'),
+                'issued_user' => [
+                    'id' => optional($form->issued_user)->id,
+                    'name' => optional($form->issued_user)->display_name ?? optional($form->issued_user)->name,
+                ],
+                'handover_date' => Helper::getFormattedDateObject($form->created_at, 'date', false) ?? '-',
+                'return_date' => $isReturned
+                    ? (Helper::getFormattedDateObject($form->updated_at, 'date', false) ?? '-')
+                    : '-',
+                'handover_download_url' => route('handover-form.download', $form->id),
+                'return_download_url' => $form->return_form_number
+                    ? route('return-form.download', $form->id)
+                    : null,
             ];
         }
 
