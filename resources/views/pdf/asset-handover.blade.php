@@ -6,7 +6,9 @@
 
     <style>
         @page {
-            margin: 22mm 18mm 22mm 18mm;
+            margin: 22mm 18mm 28mm 18mm;
+            odd-footer-name: html_AgroFooter;
+            even-footer-name: html_AgroFooter;
         }
 
         body {
@@ -74,19 +76,12 @@
             border-bottom: 0.5px solid #000;
             height: 18px;
         }
-
-        .footer {
-            margin-top: 25px;
-            text-align: center;
-            font-size: 8.5pt;
-            color: #555;
-            border-top: 0.5px solid #ccc;
-            padding-top: 4px;
-        }
     </style>
 </head>
 
 <body>
+
+@include('pdf.partials.agro-footer')
 
 {{-- ================= HEADER ================= --}}
 <table  class="no-border">
@@ -148,8 +143,8 @@
     <thead>
     <tr>
         <th width="5%">No</th>
-        <th width="10%">Asset Tag</th>
-        <th width="18%">Asset Type</th>
+        <th width="12%">Asset Tag</th>
+        <th width="16%">Asset Type</th>
         <th width="15%">Brand</th>
         <th width="15%">Model</th>
         <th width="10%">Serial Number</th>
@@ -247,16 +242,6 @@
         </td>
     </tr>
 </table>
-<!--mpdf
-<htmlpagefooter name="custom-footer">
-<div class="footer">
-AGRO NATIONAL CORPORATION PVT LTD<br>
-H. Orchid, 1st Floor, Ameenee Magu, Malé 20095, Maldives<br><br>
- Page {PAGENO} of {nbpg}
-
-</htmlpagefooter>
-<sethtmlpagefooter name="custom-footer" value="on" show-this-page="1" />
-mpdf-->
 
 </body>
 </html>

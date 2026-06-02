@@ -110,10 +110,14 @@ class AssetHandoverController
     private function renderPdf(string $view, array $data, string $filename)
     {
         $html = view($view, $data)->render();
+
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4',
+            'margin_footer' => 12,
+            'margin_bottom' => 28,
         ]);
+
         $mpdf->WriteHTML($html);
 
         return $mpdf->Output($filename, \Mpdf\Output\Destination::INLINE)
