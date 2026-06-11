@@ -36,6 +36,7 @@ class DepreciationReportTransformer
         $purchase_cost = null;
         $depreciated_value = null;
         $monthly_depreciation = null;
+        $depreciation_floor = null;
         $diff = null;
         $checkout_target = null;
 
@@ -62,9 +63,15 @@ class DepreciationReportTransformer
          * Override the previously set null values if there is a valid model and associated depreciation
          */
         if (($asset->model) && ($asset->model->depreciation) && ($asset->model->depreciation->months !== 0)) {
-            $depreciated_value = Helper::formatCurrencyOutput($asset->getDepreciatedValue());
-            $monthly_depreciation =Helper::formatCurrencyOutput($asset->purchase_cost / $asset->model->depreciation->months);
-            $diff = Helper::formatCurrencyOutput(($asset->purchase_cost - $asset->getDepreciatedValue()));
+            $depreciated_value = $asset->getDepreciatedValue();
+            $depreciation_floor = $asset->getDepreciationFloor();
+
+            if ($asset->purchase_cost != '') {
+                $monthly_depreciation = Helper::formatCurrencyOutput($asset->getMonthlyDepreciation());
+                $diff = $depreciated_value !== null
+                    ? ($asset->purchase_cost - $depreciated_value)
+                    : null;
+            }
         }
         else if($asset->model->eol !== null) {
             $monthly_depreciation = Helper::formatCurrencyOutput(($asset->model->eol > 0 ? ($asset->purchase_cost / $asset->model->eol) : 0));
@@ -100,6 +107,7 @@ class DepreciationReportTransformer
             'purchase_date' => Helper::getFormattedDateObject($asset->purchase_date, 'date'),
             'purchase_cost' => Helper::formatCurrencyOutput($asset->purchase_cost),
             'book_value' => Helper::formatCurrencyOutput($depreciated_value),
+            'depreciation_floor' => Helper::formatCurrencyOutput($depreciation_floor),
             'monthly_depreciation' => $monthly_depreciation,
             'checked_out_to' => ($checkout_target) ? e($checkout_target) : null,
             'diff' =>  Helper::formatCurrencyOutput($diff),

@@ -101,6 +101,24 @@ class Depreciable extends SnipeModel
     }
 
     /**
+     * Minimum book value after the asset is fully depreciated.
+     *
+     * @return float|int|null
+     */
+    public function getDepreciationFloor()
+    {
+        if (! $this->get_depreciation()) {
+            return null;
+        }
+
+        if ($this->get_depreciation()->depreciation_type === 'percent' && ($this->purchase_cost === '' || $this->purchase_cost === null)) {
+            return null;
+        }
+
+        return $this->calculateDepreciation();
+    }
+
+    /**
      * @param  onlyHalfFirstYear Boolean always applied only second half of the first year
      * @return float|int
      */
