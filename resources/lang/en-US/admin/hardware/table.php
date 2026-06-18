@@ -11,6 +11,7 @@ return [
     'components_cost' => 'Total Components Cost',
     'current_value' => 'Current Value',
     'diff' 			=> 'Diff',
+    'accumulated_depreciation' => 'Accumulated Depreciation',
     'dl_csv' 		=> 'Download CSV',
     'eol' 			=> 'EOL',
     'id'      		=> 'Asset No',

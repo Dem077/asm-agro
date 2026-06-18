@@ -80,9 +80,6 @@ class BulkAssetModelsController extends Controller
             $update_array['fieldset_id'] = $request->input('fieldset_id');
         }
 
-        if ($request->input('depreciation_id') != 'NC') {
-            $update_array['depreciation_id'] = $request->input('depreciation_id');
-        }
 
         if ($request->input('requestable') != '') {
             $update_array['requestable'] = $request->input('requestable');

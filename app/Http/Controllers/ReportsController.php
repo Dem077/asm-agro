@@ -123,8 +123,108 @@ class ReportsController extends Controller
     public function getDeprecationReport() : View
     {
         $this->authorize('reports.view');
-        $depreciations = Depreciation::get();
-        return view('reports/depreciation')->with('depreciations',$depreciations);
+
+        $depreciableAssetsCount = Asset::withDepreciation()->count();
+
+        $apiParams = array_filter([
+            'depreciation_method' => request('depreciation_method'),
+            'company_id' => request('company_id'),
+            'status_id' => request('status_id'),
+            'category_id' => request('category_id'),
+        ], fn ($value) => $value !== null && $value !== '');
+
+        return view('reports/depreciation', [
+            'depreciableAssetsCount' => $depreciableAssetsCount,
+            'apiParams' => $apiParams,
+            'statuslabel_list' => ['' => trans('general.all')] + Helper::statusLabelList(),
+            'company_list' => ['' => trans('general.all')] + Company::orderBy('name')->pluck('name', 'id')->toArray(),
+            'category_list' => ['' => trans('general.all')] + Category::orderBy('name')->pluck('name', 'id')->toArray(),
+        ]);
+    }
+
+    /**
+     * Export a daily depreciation schedule for selected assets (straight line or reducing balance).
+     */
+    public function exportDailyStraightLineDepreciation(Request $request): StreamedResponse|RedirectResponse
+    {
+        $this->authorize('reports.view');
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:assets,id'],
+            'start_date' => ['required', 'date', 'date_format:Y-m-d'],
+            'end_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        ]);
+
+        $from = Carbon::parse($validated['start_date'])->startOfDay();
+        $to = Carbon::parse($validated['end_date'])->startOfDay();
+
+        $assets = Asset::with(['company', 'model', 'location'])
+            ->whereIn('id', $validated['ids'])
+            ->whereIn('depreciation_method', [
+                Asset::DEPRECIATION_STRAIGHT_LINE,
+                Asset::DEPRECIATION_REDUCING_BALANCE,
+            ])
+            ->orderBy('asset_tag')
+            ->get();
+
+        if ($assets->isEmpty()) {
+            return redirect()
+                ->back()
+                ->with('error', trans('admin/depreciations/general.daily_export_no_depreciable_assets'));
+        }
+
+        $filename = 'daily-depreciation-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv';
+
+        $headers = [
+            trans('general.date'),
+            trans('general.id'),
+            trans('general.asset_tag'),
+            trans('admin/hardware/form.name'),
+            trans('admin/hardware/form.depreciation'),
+            trans('general.company'),
+            trans('general.asset_model'),
+            trans('general.purchase_date'),
+            trans('general.purchase_cost'),
+            trans('admin/depreciations/general.number_of_months'),
+            trans('admin/hardware/form.depreciation_percentage'),
+            trans('admin/depreciations/general.opening_book_value'),
+            trans('admin/depreciations/general.daily_depreciation'),
+            trans('admin/hardware/table.accumulated_depreciation'),
+            trans('admin/hardware/table.book_value'),
+        ];
+
+        return response()->streamDownload(function () use ($assets, $from, $to, $headers) {
+            $csv = \League\Csv\Writer::createFromFileObject(new \SplTempFileObject());
+            $csv->setOutputBOM(Reader::BOM_UTF16_BE);
+            $csv->insertOne($headers);
+
+            foreach ($assets as $asset) {
+                foreach ($asset->generateDailyDepreciationRows($from, $to) as $row) {
+                    $csv->insertOne([
+                        $row['date'],
+                        $row['asset_id'],
+                        $row['asset_tag'],
+                        $row['asset_name'],
+                        $row['depreciation_method'],
+                        optional($asset->company)->name,
+                        optional($asset->model)->name,
+                        $row['purchase_date'],
+                        Helper::formatCurrencyOutput($row['purchase_cost']),
+                        $row['depreciation_months'] ?? '',
+                        $row['depreciation_percentage'] !== null ? $row['depreciation_percentage'].'%' : '',
+                        Helper::formatCurrencyOutput($row['opening_book_value']),
+                        Helper::formatCurrencyOutput($row['daily_depreciation']),
+                        Helper::formatCurrencyOutput($row['accumulated_depreciation']),
+                        Helper::formatCurrencyOutput($row['closing_book_value']),
+                    ]);
+                }
+            }
+
+            $csv->output();
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-16LE',
+        ]);
     }
 
     /**

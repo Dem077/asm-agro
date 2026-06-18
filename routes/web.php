@@ -498,6 +498,10 @@ Route::group(['prefix' => 'reports', 'middleware' => ['auth']], function () {
             ->push(trans('general.depreciation_report'), route('reports/depreciation')));
 
 
+    Route::post(
+        'depreciation/daily-export', [ReportsController::class, 'exportDailyStraightLineDepreciation'])
+        ->name('reports.depreciation.daily-export');
+
     // Is this still used??
     Route::get(
         'export/depreciation', [ReportsController::class, 'exportDeprecationReport'])

@@ -60,12 +60,11 @@ class AssetsTransformer
                 'name'=> e($asset->model->manufacturer->name),
                 'tag_color'=> ($asset->model->manufacturer->tag_color) ? e($asset->model->manufacturer->tag_color) : null,
             ] : null,
-            'depreciation' => (($asset->model) && ($asset->model->depreciation)) ? [
-                'id' => (int) $asset->model->depreciation->id,
-                'name'=> e($asset->model->depreciation->name),
-                'months'=> (int) $asset->model->depreciation->months,
-                'type'=>  e($asset->model->depreciation->depreciation_type),
-                'minimum'=> ($asset->model->depreciation->depreciation_min) ? (int) $asset->model->depreciation->depreciation_min : null,
+            'depreciation' => $asset->hasDepreciation() ? [
+                'method' => e($asset->depreciation_method),
+                'months' => $asset->depreciation_months ? (int) $asset->depreciation_months : null,
+                'percentage' => $asset->depreciation_percentage ? (float) $asset->depreciation_percentage : null,
+                'summary' => e($asset->depreciationSummary()),
             ] : null,
             'supplier' => ($asset->supplier) ? [
                 'id' => (int) $asset->supplier->id,

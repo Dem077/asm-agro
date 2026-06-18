@@ -18,6 +18,18 @@ class DepreciationReportPresenter extends Presenter
     {
         $layout = [
            [
+                'field' => 'checkbox',
+                'checkbox' => true,
+                'titleTooltip' => trans('general.select_all_none'),
+                'printIgnore' => true,
+            ], [
+                'field' => 'id',
+                'searchable' => false,
+                'sortable' => false,
+                'switchable' => false,
+                'title' => trans('general.id'),
+                'visible' => false,
+            ], [
                 "field" => "company",
                 "searchable" => true,
                 "sortable" => true,
@@ -62,10 +74,16 @@ class DepreciationReportPresenter extends Presenter
                 "title" => trans('admin/hardware/form.serial'),
                 "visible" => true,
             ], [
+                "field" => "depreciation_method",
+                "searchable" => true,
+                "sortable" => true,
+                "title" => trans('admin/hardware/form.depreciation'),
+                "visible" => true,
+            ], [
                 "field" => "depreciation",
                 "searchable" => true,
                 "sortable" => true,
-                "title" => trans('general.depreciation'),
+                "title" => trans('admin/depreciations/general.depreciation_details'),
                 "visible" => true,
             ], [
                 "field" => "number_of_months",
@@ -74,11 +92,17 @@ class DepreciationReportPresenter extends Presenter
                 "title" => trans('admin/depreciations/general.number_of_months'),
                 "visible" => true,
             ], [
-                "field" => "depreciation_floor",
+                "field" => "depreciation_percentage",
                 "searchable" => true,
                 "sortable" => true,
-                "title" => trans('admin/depreciations/general.depreciation_min'),
+                "title" => trans('admin/hardware/form.depreciation_percentage'),
                 "visible" => true,
+            ], [
+                "field" => "depreciation_floor",
+                "searchable" => false,
+                "sortable" => false,
+                "title" => trans('admin/depreciations/general.depreciation_min'),
+                "visible" => false,
                 "class" => "text-right",
             ],  [
                 "field" => "status",
@@ -163,7 +187,7 @@ class DepreciationReportPresenter extends Presenter
                 "searchable" => false,
                 "sortable" => false,
                 "visible" => true,
-                "title" => trans('admin/hardware/table.diff'),
+                "title" => trans('admin/hardware/table.accumulated_depreciation'),
                 "footerFormatter" => 'sumFormatter',
                 "class" => "text-right",
             ],[

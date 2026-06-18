@@ -193,6 +193,7 @@
                 @endphp
 
                 @include ('partials.forms.edit.purchase_cost', ['currency_type' => $currency_type])
+                @include ('partials.forms.edit.asset-depreciation')
 
             </div> <!-- end order details -->
         </fieldset>
@@ -432,8 +433,16 @@
 
     });
 
+    function toggleAssetDepreciationFields() {
+        const method = $('select[name="depreciation_method"]').val();
+        $('#depreciation_months_group').toggle(method === 'straight_line');
+        $('#depreciation_percentage_group').toggle(method === 'reducing_balance');
+    }
 
-
+    $(document).ready(function () {
+        toggleAssetDepreciationFields();
+        $('select[name="depreciation_method"]').on('change select2:select', toggleAssetDepreciationFields);
+    });
 
 </script>
 @stop

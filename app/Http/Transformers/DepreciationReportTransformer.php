@@ -62,7 +62,7 @@ class DepreciationReportTransformer
         /**
          * Override the previously set null values if there is a valid model and associated depreciation
          */
-        if (($asset->model) && ($asset->model->depreciation) && ($asset->model->depreciation->months !== 0)) {
+        if ($asset->hasDepreciation()) {
             $depreciated_value = $asset->getDepreciatedValue();
             $depreciation_floor = $asset->getDepreciationFloor();
 
@@ -73,7 +73,7 @@ class DepreciationReportTransformer
                     : null;
             }
         }
-        else if($asset->model->eol !== null) {
+        else if($asset->model && $asset->model->eol !== null) {
             $monthly_depreciation = Helper::formatCurrencyOutput(($asset->model->eol > 0 ? ($asset->purchase_cost / $asset->model->eol) : 0));
         }
 
@@ -86,7 +86,7 @@ class DepreciationReportTransformer
         }
                    
         $array = [
-    
+            'id' => (int) $asset->id,
             'company' => ($asset->company) ? e($asset->company->name) : null,
             'name' => e($asset->name),
             'asset_tag' => e($asset->asset_tag),
@@ -111,8 +111,12 @@ class DepreciationReportTransformer
             'monthly_depreciation' => $monthly_depreciation,
             'checked_out_to' => ($checkout_target) ? e($checkout_target) : null,
             'diff' =>  Helper::formatCurrencyOutput($diff),
-            'number_of_months' =>  ($asset->model && $asset->model->depreciation) ? e($asset->model->depreciation->months) : null,
-            'depreciation' => (($asset->model) && ($asset->model->depreciation)) ?  e($asset->model->depreciation->name) : null,
+            'number_of_months' => $asset->depreciation_method === Asset::DEPRECIATION_STRAIGHT_LINE ? $asset->depreciation_months : null,
+            'depreciation_percentage' => $asset->depreciation_method === Asset::DEPRECIATION_REDUCING_BALANCE && $asset->depreciation_percentage
+                ? $asset->depreciation_percentage.'%'
+                : null,
+            'depreciation_method' => e($asset->depreciationMethodLabel()),
+            'depreciation' => e($asset->depreciationSummary()),
             
 
         

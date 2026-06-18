@@ -184,8 +184,7 @@ class AssetsController extends Controller
 
 
         if ($filter_non_deprecable_assets) {
-            $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
-            $assets->InModelList($non_deprecable_models->toArray());
+            $assets->withDepreciation();
         }
 
 
@@ -383,6 +382,10 @@ class AssetsController extends Controller
 
         if ($request->filled('depreciation_id')) {
             $assets->ByDepreciationId($request->input('depreciation_id'));
+        }
+
+        if ($request->filled('depreciation_method')) {
+            $assets->byDepreciationMethod($request->input('depreciation_method'));
         }
 
         if ($request->filled('byod')) {

@@ -46,6 +46,9 @@ class Asset extends Depreciable
     public const ASSET = 'asset';
     public const USER = 'user';
 
+    public const DEPRECIATION_STRAIGHT_LINE = 'straight_line';
+    public const DEPRECIATION_REDUCING_BALANCE = 'reducing_balance';
+
     use Acceptable;
 
     /**
@@ -120,6 +123,9 @@ class Asset extends Depreciable
         'purchase_date'     => ['nullable', 'date', 'date_format:Y-m-d'],
         'serial'            => ['nullable', 'string', 'unique_undeleted:assets,serial'],
         'purchase_cost'     => ['nullable', 'numeric', 'gte:0', 'max:99999999999999999.99'],
+        'depreciation_method' => ['nullable', 'in:straight_line,reducing_balance'],
+        'depreciation_months' => ['nullable', 'integer', 'min:1', 'max:3600', 'required_if:depreciation_method,straight_line'],
+        'depreciation_percentage' => ['nullable', 'numeric', 'min:0.01', 'max:100', 'required_if:depreciation_method,reducing_balance'],
         'supplier_id'       => ['nullable', 'exists:suppliers,id'],
         'asset_eol_date'    => ['nullable', 'date'],
         'eol_explicit'      => ['nullable', 'boolean'],
@@ -153,6 +159,9 @@ class Asset extends Depreciable
         'order_number',
         'purchase_cost',
         'purchase_date',
+        'depreciation_method',
+        'depreciation_months',
+        'depreciation_percentage',
         'rtd_location_id',
         'serial',
         'status_id',
@@ -601,17 +610,386 @@ class Asset extends Depreciable
 
 
     /**
-     * Establishes the asset -> depreciation relationship
-     *
-     * @author [A. Gianotto] [<snipe@snipe.net>]
-     * @since  [v3.0]
-     * @return \Illuminate\Database\Eloquent\Relations\Relation
+     * Whether this asset has per-asset depreciation configured.
      */
-    public function depreciation()
+    public function hasDepreciation(): bool
     {
-        return $this->hasOneThrough(\App\Models\Depreciation::class, \App\Models\AssetModel::class, 'id', 'id', 'model_id', 'depreciation_id');
+        return in_array($this->depreciation_method, [
+            self::DEPRECIATION_STRAIGHT_LINE,
+            self::DEPRECIATION_REDUCING_BALANCE,
+        ], true);
     }
 
+    /**
+     * Human-readable depreciation summary for display.
+     */
+    public function depreciationSummary(): ?string
+    {
+        if (! $this->hasDepreciation()) {
+            return null;
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE) {
+            return trans('admin/hardware/form.depreciation_straight_line_summary', [
+                'months' => $this->depreciation_months,
+            ]);
+        }
+
+        return trans('admin/hardware/form.depreciation_reducing_balance_summary', [
+            'percentage' => $this->depreciation_percentage,
+        ]);
+    }
+
+    public function depreciationMethodLabel(): ?string
+    {
+        return match ($this->depreciation_method) {
+            self::DEPRECIATION_STRAIGHT_LINE => trans('admin/hardware/form.depreciation_straight_line'),
+            self::DEPRECIATION_REDUCING_BALANCE => trans('admin/hardware/form.depreciation_reducing_balance'),
+            default => null,
+        };
+    }
+
+    /**
+     * @return float|int|null
+     */
+    public function getDepreciatedValue()
+    {
+        if (! $this->hasDepreciation() || ! $this->purchase_date || $this->purchase_cost === '' || $this->purchase_cost === null) {
+            return $this->purchase_cost;
+        }
+
+        $months_passed = $this->depreciationMonthsPassed();
+
+        if ($this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE) {
+            if (! $this->depreciation_months || $this->depreciation_months <= 0) {
+                return $this->purchase_cost;
+            }
+
+            if ($months_passed >= $this->depreciation_months) {
+                return 0;
+            }
+
+            return round(
+                $this->purchase_cost - ($this->purchase_cost * $months_passed / $this->depreciation_months),
+                2
+            );
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_REDUCING_BALANCE) {
+            if (! $this->depreciation_percentage || $this->depreciation_percentage <= 0) {
+                return $this->purchase_cost;
+            }
+
+            return $this->reducingBalanceNetBookValueAt(now());
+        }
+
+        return $this->purchase_cost;
+    }
+
+    /**
+     * @return float|int|null
+     */
+    public function getMonthlyDepreciation()
+    {
+        if (! $this->hasDepreciation() || $this->purchase_cost === '' || $this->purchase_cost === null) {
+            return null;
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE && $this->depreciation_months > 0) {
+            return $this->purchase_cost / $this->depreciation_months;
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_REDUCING_BALANCE && $this->depreciation_percentage > 0) {
+            $nbv = $this->reducingBalanceNetBookValueAt(now());
+            $monthlyRate = ($this->depreciation_percentage / 100) / 12;
+
+            return $nbv * $monthlyRate;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return float|int|null
+     */
+    public function getDepreciationFloor()
+    {
+        if (! $this->hasDepreciation()) {
+            return null;
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE) {
+            return 0;
+        }
+
+        return 0;
+    }
+
+    public function depreciated_date()
+    {
+        if (! $this->purchase_date || ! $this->hasDepreciation()) {
+            return null;
+        }
+
+        if ($this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE && $this->depreciation_months) {
+            $date = date_create($this->purchase_date);
+
+            return date_add($date, date_interval_create_from_date_string($this->depreciation_months.' months'));
+        }
+
+        return null;
+    }
+
+    public function hasStraightLineDepreciation(): bool
+    {
+        return $this->depreciation_method === self::DEPRECIATION_STRAIGHT_LINE;
+    }
+
+    public function straightLineScheduleEndDate(): ?Carbon
+    {
+        if (! $this->hasStraightLineDepreciation() || ! $this->purchase_date || ! $this->depreciation_months) {
+            return null;
+        }
+
+        return Carbon::parse($this->purchase_date)->addMonths((int) $this->depreciation_months)->startOfDay();
+    }
+
+    public function straightLineTotalDepreciationDays(): ?int
+    {
+        if (! $this->purchase_date || ! $this->straightLineScheduleEndDate()) {
+            return null;
+        }
+
+        $totalDays = Carbon::parse($this->purchase_date)->startOfDay()
+            ->diffInDays($this->straightLineScheduleEndDate());
+
+        return max(1, (int) $totalDays);
+    }
+
+    public function straightLineDailyRate(): ?float
+    {
+        if ($this->purchase_cost === '' || $this->purchase_cost === null) {
+            return null;
+        }
+
+        $totalDays = $this->straightLineTotalDepreciationDays();
+
+        if (! $totalDays) {
+            return null;
+        }
+
+        return (float) $this->purchase_cost / $totalDays;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function generateStraightLineDailyRows(Carbon $from, Carbon $to): array
+    {
+        if (! $this->hasStraightLineDepreciation() || ! $this->purchase_date || ! $this->depreciation_months) {
+            return [];
+        }
+
+        $dailyRate = $this->straightLineDailyRate();
+
+        if ($dailyRate === null) {
+            return [];
+        }
+
+        $purchaseDate = Carbon::parse($this->purchase_date)->startOfDay();
+        $scheduleEnd = $this->straightLineScheduleEndDate();
+        $rows = [];
+        $purchaseCost = (float) $this->purchase_cost;
+
+        for ($date = $from->copy()->startOfDay(); $date->lte($to); $date->addDay()) {
+            if ($date->lt($purchaseDate)) {
+                continue;
+            }
+
+            $daysElapsed = (int) $purchaseDate->diffInDays($date);
+            $openingNbv = max(0, round($purchaseCost - ($dailyRate * $daysElapsed), 2));
+            $dailyDepreciation = $date->gte($scheduleEnd) ? 0 : round(min($dailyRate, $openingNbv), 2);
+            $closingNbv = max(0, round($openingNbv - $dailyDepreciation, 2));
+            $accumulatedDepreciation = round($purchaseCost - $closingNbv, 2);
+
+            $rows[] = [
+                'date' => $date->format('Y-m-d'),
+                'asset_id' => $this->id,
+                'asset_tag' => $this->asset_tag,
+                'asset_name' => $this->name,
+                'depreciation_method' => $this->depreciationMethodLabel(),
+                'purchase_date' => $purchaseDate->format('Y-m-d'),
+                'purchase_cost' => $purchaseCost,
+                'depreciation_months' => (int) $this->depreciation_months,
+                'depreciation_percentage' => null,
+                'opening_book_value' => $openingNbv,
+                'daily_depreciation' => $dailyDepreciation,
+                'accumulated_depreciation' => $accumulatedDepreciation,
+                'closing_book_value' => $closingNbv,
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function hasReducingBalanceDepreciation(): bool
+    {
+        return $this->depreciation_method === self::DEPRECIATION_REDUCING_BALANCE;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function generateReducingBalanceDailyRows(Carbon $from, Carbon $to): array
+    {
+        if (! $this->hasReducingBalanceDepreciation() || ! $this->purchase_date || ! $this->depreciation_percentage) {
+            return [];
+        }
+
+        if ($this->purchase_cost === '' || $this->purchase_cost === null) {
+            return [];
+        }
+
+        $purchaseDate = Carbon::parse($this->purchase_date)->startOfDay();
+        $purchaseCost = (float) $this->purchase_cost;
+        $rows = [];
+        $nbv = $purchaseCost;
+
+        $cursor = $purchaseDate->copy();
+        while ($cursor->lt($from) && $nbv > 0) {
+            $nbv = $this->applyReducingBalanceDailyDepreciation($nbv, $cursor);
+            $cursor->addDay();
+        }
+
+        for ($date = $from->copy()->startOfDay(); $date->lte($to); $date->addDay()) {
+            if ($date->lt($purchaseDate)) {
+                continue;
+            }
+
+            $openingNbv = round($nbv, 2);
+            $nbv = $this->applyReducingBalanceDailyDepreciation($nbv, $date);
+            $closingNbv = round($nbv, 2);
+            $dailyDepreciation = round(max(0, $openingNbv - $closingNbv), 2);
+
+            $rows[] = [
+                'date' => $date->format('Y-m-d'),
+                'asset_id' => $this->id,
+                'asset_tag' => $this->asset_tag,
+                'asset_name' => $this->name,
+                'depreciation_method' => $this->depreciationMethodLabel(),
+                'purchase_date' => $purchaseDate->format('Y-m-d'),
+                'purchase_cost' => $purchaseCost,
+                'depreciation_months' => null,
+                'depreciation_percentage' => (float) $this->depreciation_percentage,
+                'opening_book_value' => $openingNbv,
+                'daily_depreciation' => $dailyDepreciation,
+                'accumulated_depreciation' => round($purchaseCost - $closingNbv, 2),
+                'closing_book_value' => $closingNbv,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function generateDailyDepreciationRows(Carbon $from, Carbon $to): array
+    {
+        return match ($this->depreciation_method) {
+            self::DEPRECIATION_STRAIGHT_LINE => $this->generateStraightLineDailyRows($from, $to),
+            self::DEPRECIATION_REDUCING_BALANCE => $this->generateReducingBalanceDailyRows($from, $to),
+            default => [],
+        };
+    }
+
+    protected function depreciationMonthsPassed(): int
+    {
+        if (! $this->purchase_date) {
+            return 0;
+        }
+
+        $diff = $this->purchase_date->diff(now());
+
+        return $diff->m + ($diff->y * 12);
+    }
+
+    /**
+     * Reducing balance NBV on a date: daily depreciation = NBV × (annual rate ÷ 12 ÷ days in month).
+     */
+    public function reducingBalanceNetBookValueAt(Carbon $asOfDate): float
+    {
+        if (! $this->hasReducingBalanceDepreciation() || ! $this->purchase_date || ! $this->depreciation_percentage) {
+            return (float) ($this->purchase_cost ?? 0);
+        }
+
+        $cost = (float) $this->purchase_cost;
+
+        if ($cost <= 0) {
+            return 0;
+        }
+
+        $purchaseDate = Carbon::parse($this->purchase_date)->startOfDay();
+        $asOfDate = $asOfDate->copy()->startOfDay();
+
+        if ($asOfDate->lt($purchaseDate)) {
+            return round($cost, 2);
+        }
+
+        $monthlyRate = ($this->depreciation_percentage / 100) / 12;
+        $nbv = $cost;
+        $cursor = $purchaseDate->copy();
+
+        while ($cursor->lte($asOfDate)) {
+            $nbv = $this->applyReducingBalanceDailyDepreciation($nbv, $cursor);
+
+            if ($nbv <= 0) {
+                return 0;
+            }
+
+            $cursor->addDay();
+        }
+
+        return round($nbv, 2);
+    }
+
+    protected function applyReducingBalanceDailyDepreciation(float $nbv, Carbon $date): float
+    {
+        if ($nbv <= 0) {
+            return 0;
+        }
+
+        $monthlyRate = ($this->depreciation_percentage / 100) / 12;
+        $dailyRate = $monthlyRate / $date->daysInMonth;
+
+        return max(0, $nbv - ($nbv * $dailyRate));
+    }
+
+    /**
+     * @return float|int|null
+     */
+    public function getAccumulatedDepreciation(): ?float
+    {
+        if (! $this->hasDepreciation() || $this->purchase_cost === '' || $this->purchase_cost === null) {
+            return null;
+        }
+
+        $bookValue = $this->getDepreciatedValue();
+
+        if ($bookValue === null) {
+            return null;
+        }
+
+        return round((float) $this->purchase_cost - (float) $bookValue, 2);
+    }
+
+    /**
+     * Legacy hook used by Depreciable; assets store depreciation directly.
+     */
+    public function get_depreciation()
+    {
+        return $this->hasDepreciation() ? $this : null;
+    }
 
     /**
      * Get components assigned to this asset
@@ -623,23 +1001,6 @@ class Asset extends Depreciable
     public function components()
     {
         return $this->belongsToMany('\App\Models\Component', 'components_assets', 'asset_id', 'component_id')->withPivot('id', 'assigned_qty', 'created_at');
-    }
-
-
-    /**
-     * Get depreciation attribute from associated asset model
-     *
-     * @todo Is this still needed?
-     *
-     * @author [A. Gianotto] [<snipe@snipe.net>]
-     * @since  [v4.0]
-     * @return \Illuminate\Database\Eloquent\Relations\Relation
-     */
-    public function get_depreciation()
-    {
-        if (($this->model) && ($this->model->depreciation)) {
-            return $this->model->depreciation;
-        }
     }
 
 
@@ -2315,11 +2676,22 @@ class Asset extends Depreciable
      *
      * @return \Illuminate\Database\Query\Builder          Modified query builder
      */
+    public function scopeWithDepreciation($query)
+    {
+        return $query->whereNotNull('assets.depreciation_method');
+    }
+
+    public function scopeByDepreciationMethod($query, $method)
+    {
+        return $query->where('assets.depreciation_method', '=', $method);
+    }
+
+    /**
+     * @deprecated Use scopeByDepreciationMethod() instead.
+     */
     public function scopeByDepreciationId($query, $search)
     {
-        return $query->join('models', 'assets.model_id', '=', 'models.id')
-            ->join('depreciations', 'models.depreciation_id', '=', 'depreciations.id')->where('models.depreciation_id', '=', $search);
-
+        return $query->whereNotNull('assets.depreciation_method');
     }
 
 

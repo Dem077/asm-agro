@@ -856,7 +856,7 @@
                                                 </div>
                                             </div>
                                         @endif
-                                        @if (($asset->model) && ($asset->depreciation) && ($asset->purchase_date))
+                                        @if ($asset->hasDepreciation() && $asset->purchase_date)
                                             <div class="row">
                                                 <div class="col-md-3">
                                                     <strong>
@@ -949,7 +949,7 @@
 
                                         @endif
 
-                                        @if (($asset->model) && ($asset->depreciation))
+                                        @if ($asset->hasDepreciation())
                                             <div class="row">
                                                 <div class="col-md-3">
                                                     <strong>
@@ -957,10 +957,10 @@
                                                     </strong>
                                                 </div>
                                                 <div class="col-md-9">
-                                                    {{ $asset->depreciation->name }}
-                                                    ({{ trans_choice('general.months_plural', $asset->depreciation->months) }})
+                                                    {{ $asset->depreciationSummary() }}
                                                 </div>
                                             </div>
+                                            @if ($asset->depreciation_method === \App\Models\Asset::DEPRECIATION_STRAIGHT_LINE && $asset->depreciated_date())
                                             <div class="row">
                                                 <div class="col-md-3">
                                                     <strong>
@@ -978,6 +978,7 @@
 
                                                 </div>
                                             </div>
+                                            @endif
                                         @endif
 
                                         @if (($asset->asset_eol_date) && ($asset->purchase_date))

@@ -163,6 +163,7 @@ class AssetsController extends Controller
                 $asset->warranty_months = request('warranty_months', null);
                 $asset->purchase_cost = request('purchase_cost');
                 $asset->purchase_date = request('purchase_date', null);
+                $this->applyAssetDepreciation($asset, $request);
                 $asset->asset_eol_date = request('asset_eol_date', null);
                 $asset->assigned_to = request('assigned_to', null);
                 $asset->supplier_id = request('supplier_id', null);
@@ -378,6 +379,7 @@ class AssetsController extends Controller
         $asset->warranty_months = $request->input('warranty_months', null);
         $asset->purchase_cost = $request->input('purchase_cost', null);
         $asset->purchase_date = $request->input('purchase_date', null);
+        $this->applyAssetDepreciation($asset, $request);
         $asset->next_audit_date = $request->input('next_audit_date', null);
         if ($request->filled('purchase_date') && !$request->filled('asset_eol_date') && ($asset->model?->eol > 0)) {
             $asset->purchase_date = $request->input('purchase_date', null); 
@@ -1080,6 +1082,23 @@ class AssetsController extends Controller
         $requestedItems = $requestedItems->orderBy('created_at', 'desc')->get();
 
         return view('hardware/requested', compact('requestedItems'));
+    }
+
+    private function applyAssetDepreciation(Asset $asset, Request $request): void
+    {
+        $method = $request->input('depreciation_method') ?: null;
+        $asset->depreciation_method = $method;
+
+        if ($method === Asset::DEPRECIATION_STRAIGHT_LINE) {
+            $asset->depreciation_months = $request->input('depreciation_months');
+            $asset->depreciation_percentage = null;
+        } elseif ($method === Asset::DEPRECIATION_REDUCING_BALANCE) {
+            $asset->depreciation_percentage = $request->input('depreciation_percentage');
+            $asset->depreciation_months = null;
+        } else {
+            $asset->depreciation_months = null;
+            $asset->depreciation_percentage = null;
+        }
     }
 
 }

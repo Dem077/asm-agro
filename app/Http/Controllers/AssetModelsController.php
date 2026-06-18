@@ -73,7 +73,7 @@ class AssetModelsController extends Controller
         $model = new AssetModel;
 
         $model->eol = $request->input('eol');
-        $model->depreciation_id = $request->input('depreciation_id');
+        $model->depreciation_id = null;
         $model->name = $request->input('name');
         $model->model_number = $request->input('model_number');
         $model->min_amt = $request->input('min_amt');
@@ -147,7 +147,7 @@ class AssetModelsController extends Controller
         $this->authorize('update', AssetModel::class);
 
         $model = $request->handleImages($model);
-        $model->depreciation_id = $request->input('depreciation_id');
+        $model->depreciation_id = null;
         $model->eol = $request->input('eol');
         $model->name = $request->input('name');
         $model->model_number = $request->input('model_number');
@@ -366,9 +366,6 @@ class AssetModelsController extends Controller
         }
         if ($request->input('fieldset_id') != 'NC') {
             $update_array['fieldset_id'] = $request->input('fieldset_id');
-        }
-        if ($request->input('depreciation_id') != 'NC') {
-            $update_array['depreciation_id'] = $request->input('depreciation_id');
         }
 
         
