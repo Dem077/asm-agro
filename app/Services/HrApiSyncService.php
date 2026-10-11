@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Department;
 use App\Models\User;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -21,6 +22,11 @@ class HrApiSyncService
      */
     public function sync(): array
     {
+        // HR payloads can exceed the default 30s FPM limit when curl is unavailable.
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+
         $config = config('services.hr_api');
 
         if (empty($config['base_url']) || empty($config['api_key'])) {
@@ -105,13 +111,9 @@ class HrApiSyncService
      */
     private function fetchCollection(array $config, string $path): Collection
     {
-        $url = $config['base_url'].$path;
+        $url = $this->buildAllowedUrl($config, $path);
 
-        $response = Http::withHeaders([
-            'X-API-KEY' => $config['api_key'],
-            'Accept' => 'application/json',
-        ])
-            ->timeout(60)
+        $response = $this->httpClient($config)
             ->get($url);
 
         $response->throw();
@@ -119,6 +121,53 @@ class HrApiSyncService
         $payload = $this->parseJsonPayload($response->body());
 
         return $this->normalizeCollection($payload);
+    }
+
+    /**
+     * Only allow HTTPS requests to the configured HR API host (no open redirects / SSRF).
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function buildAllowedUrl(array $config, string $path): string
+    {
+        $base = rtrim((string) $config['base_url'], '/');
+        $parts = parse_url($base);
+
+        if (($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])) {
+            throw new \RuntimeException('HR_API_BASE_URL must be a valid https:// URL.');
+        }
+
+        $path = '/'.ltrim($path, '/');
+        if (str_contains($path, '..') || str_contains($path, "\0")) {
+            throw new \RuntimeException('Invalid HR API path.');
+        }
+
+        return $base.$path;
+    }
+
+    /**
+     * Outbound HTTP via cURL only (allow_url_fopen is disabled on this host).
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function httpClient(array $config): PendingRequest
+    {
+        if (! function_exists('curl_exec')) {
+            throw new \RuntimeException(
+                'HR API sync requires curl_exec (allow_url_fopen is disabled).'
+            );
+        }
+
+        return Http::withHeaders([
+            'X-API-KEY' => $config['api_key'],
+            'Accept' => 'application/json',
+        ])
+            ->timeout(60)
+            ->withOptions([
+                // Block redirect-based SSRF away from the configured HR host.
+                'allow_redirects' => false,
+                'protocols' => ['https'],
+            ]);
     }
 
     private function parseJsonPayload(string $body): mixed

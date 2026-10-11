@@ -101,8 +101,10 @@
             </div>
         </td>
         <td width="40%" style="text-align: right">
-            <img src="{{ Storage::disk('public')->url($settings) }}"
-                 alt="Company logo" height="120">
+            @if($settings && Storage::disk('public')->exists($settings))
+                <img src="{{ Storage::disk('public')->path($settings) }}"
+                     alt="Company logo" height="120">
+            @endif
         </td>
     </tr>
 </table>
