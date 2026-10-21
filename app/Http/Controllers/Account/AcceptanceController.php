@@ -25,9 +25,19 @@ use \Illuminate\Contracts\View\View;
 use \Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\Helper;
+use App\Http\Traits\ManagesAssetForms;
+use App\Models\Asset;
+use App\Models\AssetForm;
+use App\Services\HandoverPdfService;
 
 class AcceptanceController extends Controller
 {
+    use ManagesAssetForms;
+
+    public function __construct(private HandoverPdfService $handoverPdfService)
+    {
+    }
+
     /**
      * Show a listing of pending checkout acceptances for the current user
      */
@@ -63,7 +73,20 @@ class AcceptanceController extends Controller
             return redirect()->route('account.accept')->with('error', trans('general.error_user_company'));
         }
 
-        return view('account/accept.create', compact('acceptance'));
+        $handoverForm = null;
+        $handoverPreview = null;
+
+        if ($acceptance->checkoutable instanceof Asset) {
+            $handoverForm = $this->ensureHandoverFormForAsset($acceptance->checkoutable, $acceptance->assigned_to_id);
+            if ($handoverForm) {
+                $handoverPreview = $this->handoverPdfService->buildHandoverPdfData(
+                    $handoverForm,
+                    collect($handoverForm->assets['assets'] ?? [])
+                );
+            }
+        }
+
+        return view('account/accept.create', compact('acceptance', 'handoverForm', 'handoverPreview'));
     }
 
     /**
@@ -115,6 +138,7 @@ class AcceptanceController extends Controller
         }
 
         $item = $acceptance->checkoutable_type::find($acceptance->checkoutable_id);
+        $encoded_image = [];
 
         // If signatures are required, make sure we have one
         if (Setting::getSettings()->require_accept_signature == '1') {
@@ -170,8 +194,20 @@ class AcceptanceController extends Controller
 
             $pdf_filename = 'accepted-'.$acceptance->checkoutable_id.'-'.$acceptance->display_checkoutable_type.'-eula-'.date('Y-m-d-h-i-s').'.pdf';
 
-            // Generate the PDF content
+            // Mark the handover form as electronically signed (downloaded from Handover Forms tab)
+            if ($item instanceof Asset) {
+                $handoverForm = $this->ensureHandoverFormForAsset($item, $assigned_user?->id);
+                if ($handoverForm) {
+                    $this->handoverPdfService->markFormElectronicallySigned(
+                        $handoverForm,
+                        $sig_filename ?: null
+                    );
+                }
+            }
+
+            // EULA tab keeps the original acceptance PDF
             $pdf_content = $acceptance->generateAcceptancePdf($data, $acceptance);
+
             Storage::put('private_uploads/eula-pdfs/' .$pdf_filename, $pdf_content);
 
             // Log the acceptance
@@ -234,6 +270,29 @@ class AcceptanceController extends Controller
 
     }
 
+    /**
+     * Ensure the checked-out asset has a handover form (create one if missing).
+     */
+    protected function ensureHandoverFormForAsset(Asset $asset, ?int $userId = null): ?AssetForm
+    {
+        $asset->loadMissing('assetform');
 
+        if ($asset->assetform) {
+            return $asset->assetform;
+        }
+
+        $form = $this->createHandoverForm(
+            $userId ?: $asset->assigned_to,
+            [$asset]
+        );
+
+        if (! $form) {
+            return null;
+        }
+
+        $asset->refresh();
+
+        return $asset->assetform;
+    }
 
 }

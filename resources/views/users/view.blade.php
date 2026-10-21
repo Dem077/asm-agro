@@ -77,7 +77,8 @@
                           <span class="hidden-lg hidden-md">
                               <i class="fas fa-pager fa-2x"></i>
                           </span>
-                  <span class="hidden-xs hidden-sm">{{ trans('general.view_forms') }}
+                  <span class="hidden-xs hidden-sm">{{ trans('general.handover_forms') }}
+                      {!! ($user->handoverForms->count() > 0 ) ? '<span class="badge badge-secondary">'.number_format($user->handoverForms->count()).'</span>' : '' !!}
                           </span>
               </a>
           </li>
@@ -971,7 +972,7 @@
           <div class="tab-pane fade" id="forms">
 
               <h2 class="box-title" style="float:left">
-                  {{ trans('general.view_forms') }}
+                  {{ trans('general.handover_forms') }}
               </h2>
 
               <table

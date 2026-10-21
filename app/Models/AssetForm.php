@@ -11,12 +11,25 @@ use Illuminate\Support\Collection;
 
 class AssetForm extends Model
 {
-    protected $fillable = ['form_number', 'asset_id', 'user_id' , 'status' , 'issued_user_id','assets','returned_assets','return_form_number','return_issued_user_id'];
+    protected $fillable = [
+        'form_number',
+        'asset_id',
+        'user_id',
+        'status',
+        'issued_user_id',
+        'assets',
+        'returned_assets',
+        'return_form_number',
+        'return_issued_user_id',
+        'electronically_signed_at',
+        'acknowledgment_signature',
+    ];
 
 
     protected $casts = [
         'assets' => 'array',
         'returned_assets' => 'array',
+        'electronically_signed_at' => 'datetime',
     ];
     public function asset(): HasMany
     {

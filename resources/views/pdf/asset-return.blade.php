@@ -221,26 +221,46 @@
 </div>
 
 {{-- ================= SIGNATURE SECTION ================= --}}
+@php
+    $physicalSignatureRequired = $physicalSignatureRequired ?? true;
+    $signedDate = $returnDate
+        ? \Carbon\Carbon::parse($returnDate)->format('d M Y')
+        : now()->format('d M Y');
+@endphp
 <br><br>
 
 <table class="no-border">
     <tr>
         <td width="50%" style="padding-right:20px;">
             <strong>Returned By</strong><br><br>
-            <div class="signature-line"></div>
+            @if($physicalSignatureRequired)
+                <div class="signature-line"></div>
+            @endif
             Name: {{ optional($assetForm->user)->name ?? '' }}<br>
+            Emp No: {{ optional($assetForm->user)->employee_num ?? '' }}<br>
             Designation: {{ optional($assetForm->user)->jobtitle ?? '' }}<br>
-            Date: {{ $returnDate ? \Carbon\Carbon::parse($returnDate)->format('d M Y') : now()->format('d M Y') }}<br>
-            Signature:
+            Date: {{ $signedDate }}<br>
+            @if($physicalSignatureRequired)
+                Signature:
+            @else
+                Electronically signed on: {{ $signedDate }}
+            @endif
         </td>
 
         <td width="50%" style="padding-left:20px;">
             <strong>Received By</strong><br><br>
-            <div class="signature-line"></div>
+            @if($physicalSignatureRequired)
+                <div class="signature-line"></div>
+            @endif
             Name: {{ optional($assetForm->return_issued_user)->name ?? '' }}<br>
+            Emp No: {{ optional($assetForm->return_issued_user)->employee_num ?? '' }}<br>
             Designation: {{ optional($assetForm->return_issued_user)->jobtitle ?? '' }}<br>
-            Date: {{ $returnDate ? \Carbon\Carbon::parse($returnDate)->format('d M Y') : now()->format('d M Y') }}<br>
-            Signature:
+            Date: {{ $signedDate }}<br>
+            @if($physicalSignatureRequired)
+                Signature:
+            @else
+                Electronically signed on: {{ $signedDate }}
+            @endif
         </td>
     </tr>
 </table>

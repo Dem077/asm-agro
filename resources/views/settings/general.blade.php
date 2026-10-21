@@ -148,6 +148,19 @@
                            </div>
                            <!-- /.form-group -->
 
+                           <!-- Physical signature required on handover form -->
+                           <div class="form-group {{ $errors->has('physical_signature_required') ? 'error' : '' }}">
+                               <div class="col-md-8 col-md-offset-3">
+                                   <label class="form-control">
+                                       <input type="checkbox" name="physical_signature_required" value="1" @checked(old('physical_signature_required', $setting->physical_signature_required)) />
+                                       {{ trans('admin/settings/general.physical_signature_required') }}
+                                   </label>
+                                   {!! $errors->first('physical_signature_required', '<span class="alert-msg" aria-hidden="true">:message</span>') !!}
+                                   <p class="help-block">{{ trans('admin/settings/general.physical_signature_required_help_text') }}</p>
+                               </div>
+                           </div>
+                           <!-- /.form-group -->
+
                            <!-- Default EULA -->
                            <div class="form-group {{ $errors->has('default_eula_text') ? 'error' : '' }}">
                                <label for="default_eula_text" class="col-md-3 control-label">{{ trans('admin/settings/general.default_eula_text') }}</label>

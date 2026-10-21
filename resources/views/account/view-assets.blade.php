@@ -124,6 +124,17 @@
             </a>
           </li>
 
+          <li>
+            <a href="#handover-forms" data-toggle="tab">
+              <span class="hidden-lg hidden-md">
+                <i class="fas fa-pager fa-2x"></i>
+              </span>
+              <span class="hidden-xs hidden-sm">{{ trans('general.handover_forms') }}
+                {!! ($user->handoverForms->count() > 0 ) ? '<span class="badge badge-secondary">'.number_format($user->handoverForms->count()).'</span>' : '' !!}
+              </span>
+            </a>
+          </li>
+
         </ul>
 
         <div class="tab-content">
@@ -793,6 +804,27 @@
               </thead>
             </table>
           </div><!-- /eulas-tab -->
+
+          <div class="tab-pane" id="handover-forms">
+            <h2 class="box-title" style="float:left">
+              {{ trans('general.handover_forms') }}
+            </h2>
+
+            <table
+                    data-columns="{{ \App\Presenters\AssetFormPresenter::assignedDataTableLayout(false) }}"
+                    data-cookie-id-table="accountHandoverFormsTable"
+                    data-id-table="accountHandoverFormsTable"
+                    data-side-pagination="server"
+                    data-sort-order="desc"
+                    id="accountHandoverFormsTable"
+                    class="table table-striped snipe-table"
+                    data-url="{{ route('api.self.handover_forms', ['user_id' => e(request('user_id'))]) }}"
+                    data-export-options='{
+                      "fileName": "export-handover-forms-{{ str_slug($user->username) }}-{{ date('Y-m-d') }}",
+                      "ignoreColumn": ["actions","checkbox"]
+                    }'>
+            </table>
+          </div><!-- /handover-forms-tab -->
         </div><!-- /.tab-content -->
       </div><!-- nav-tabs-custom -->
     </div>

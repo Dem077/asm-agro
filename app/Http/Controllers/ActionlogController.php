@@ -12,6 +12,7 @@ use \Illuminate\Http\Response;
 
 class ActionlogController extends Controller
 {
+
     public function displaySig($filename) : RedirectResponse | Response | bool
     {
         // PHP doesn't let you handle file not found errors well with 

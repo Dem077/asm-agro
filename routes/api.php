@@ -47,6 +47,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'api-throttle:api']], fu
             ]
         )->name('api.self.eulas');
 
+        Route::get('handover-forms',
+            [
+                Api\ProfileController::class,
+                'handoverForms'
+            ]
+        )->name('api.self.handover_forms');
+
         Route::post('request/{asset}', [Api\CheckoutRequest::class, 'store'])->name('api.assets.requests.store');
         Route::post('request/{asset}/cancel', [Api\CheckoutRequest::class, 'destroy'])->name('api.assets.requests.destroy');
 

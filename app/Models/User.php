@@ -671,6 +671,14 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     }
 
     /**
+     * Handover forms issued to this user (employee).
+     */
+    public function handoverForms()
+    {
+        return $this->hasMany(AssetForm::class, 'user_id')->orderByDesc('created_at');
+    }
+
+    /**
      * Establishes the user -> requested assets relationship
      *
      * @author A. Gianotto <snipe@snipe.net>

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Transformers\AssetsTransformer;
 use App\Http\Transformers\ProfileTransformer;
+use App\Models\AssetForm;
 use App\Models\CheckoutRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
@@ -196,5 +198,27 @@ class ProfileController extends Controller
         );
     }
 
+    /**
+     * Display handover forms for the current (or selected) user.
+     */
+    public function handoverForms(Request $request)
+    {
+        if ($request->filled('user_id') && $request->input('user_id') != 0) {
+            $user = User::find($request->input('user_id'));
+        } else {
+            $user = auth()->user();
+        }
+
+        if (! $user) {
+            return response()->json(['total' => 0, 'rows' => []]);
+        }
+
+        $forms = AssetForm::where('user_id', $user->id)
+            ->with(['user', 'issued_user'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return (new AssetsTransformer)->transformAssetForms($forms, $forms->count());
+    }
 
 }

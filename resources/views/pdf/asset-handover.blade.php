@@ -210,7 +210,7 @@
 <div class="section-title">Terms & Conditions</div>
 
 <div class="terms">
-    I acknowledge receipt of the above listed assets in good working condition and agree that:
+    I acknowledge receipt of the above listed assets in aboev mentioned condition and agree that:
     <ul>
         <li>Assets are for official use only.</li>
         <li>I am responsible for safekeeping and proper usage.</li>
@@ -221,26 +221,55 @@
 </div>
 
 {{-- ================= SIGNATURE SECTION (TABLE LAYOUT ONLY) ================= --}}
+@php
+    $physicalSignatureRequired = $physicalSignatureRequired ?? true;
+    $acknowledgmentSignature = $acknowledgmentSignature ?? null;
+    $issuedAt = \Carbon\Carbon::parse($assetForm->created_at ?? now());
+    $acknowledgmentAt = \Carbon\Carbon::parse($assetForm->electronically_signed_at ?? $issuedAt);
+
+    $acknowledgmentDate = $acknowledgmentAt->format('d M Y');
+    $acknowledgmentDateTime = $acknowledgmentAt->format('d M Y H:i');
+    $issuedDate = $issuedAt->format('d M Y');
+    $issuedDateTime = $issuedAt->format('d M Y H:i');
+@endphp
 <br><br>
 
 <table class="no-border">
     <tr>
         <td width="50%" style="padding-right:20px;">
             <strong>Acknowledgment</strong><br><br>
-            <div class="signature-line"></div>
+            @if($physicalSignatureRequired)
+                <div class="signature-line"></div>
+            @elseif($acknowledgmentSignature)
+                <img src="data:image/png;base64,{{ $acknowledgmentSignature }}" height="50" alt="Signature"><br>
+            @endif
             Name: {{ optional($assetForm->user)->name ?? '' }}<br>
+            Emp No: {{ optional($assetForm->user)->employee_num ?? '' }}<br>
             Designation: {{ optional($assetForm->user)->jobtitle ?? '' }}<br>
-            Date: {{ now()->format('d M Y')}}<br>
-            Signature:
+            Date: {{ $acknowledgmentDate }}<br>
+            @if($physicalSignatureRequired)
+                Signature:
+            @elseif($assetForm->electronically_signed_at || !empty($electronicallySignedAt))
+                Electronically signed on: {{ $acknowledgmentDateTime }}
+            @else
+                Pending electronic acceptance
+            @endif
         </td>
 
         <td width="50%" style="padding-left:20px;">
             <strong>Issued By</strong><br><br>
-            <div class="signature-line"></div>
+            @if($physicalSignatureRequired)
+                <div class="signature-line"></div>
+            @endif
             Name: {{ optional($assetForm->issued_user)->name ?? '' }}<br>
+            Emp No: {{ optional($assetForm->issued_user)->employee_num ?? '' }}<br>
             Designation: {{ optional($assetForm->issued_user)->jobtitle ?? '' }}<br>
-            Date: {{ now()->format('d M Y')}}<br>
-            Signature:
+            Date: {{ $issuedDate }}<br>
+            @if($physicalSignatureRequired)
+                Signature:
+            @else
+                Electronically signed on: {{ $issuedDateTime }}
+            @endif
         </td>
     </tr>
 </table>
