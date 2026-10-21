@@ -106,9 +106,10 @@ class AssetCheckoutController extends Controller
             if ($request->filled('status_id')) {
                 $asset->status_id = $request->input('status_id');
             }
-            if ($request->filled('form_user_id')) {
-                $form_assigned_user = $request->input('form_user_id');
-            }
+
+            $form_assigned_user = $request->filled('form_user_id')
+                ? $request->input('form_user_id')
+                : null;
 
             if(!empty($asset->licenseseats->all())){
                 if(request('checkout_to_type') == 'user') {

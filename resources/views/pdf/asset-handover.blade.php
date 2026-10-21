@@ -210,7 +210,7 @@
 <div class="section-title">Terms & Conditions</div>
 
 <div class="terms">
-    I acknowledge receipt of the above listed assets in aboev mentioned condition and agree that:
+    I acknowledge receipt of the above listed assets in working condition and agree that:
     <ul>
         <li>Assets are for official use only.</li>
         <li>I am responsible for safekeeping and proper usage.</li>
