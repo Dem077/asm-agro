@@ -416,6 +416,23 @@ $(function () {
     // This handles the radio button selectors for the checkout-to-foo options
     // on asset checkout and also on asset edit
     $(function() {
+        function toggleHandoverFormUserSelector(assignto_type) {
+            var $formUserSelector = $('#form-user-selector');
+            var $formUserSelect = $formUserSelector.find('[name="form_user_id"]');
+
+            if (!$formUserSelector.length) {
+                return;
+            }
+
+            if (assignto_type === 'user') {
+                $formUserSelector.hide();
+                $formUserSelect.prop('required', false).val('').trigger('change');
+            } else {
+                $formUserSelector.show();
+                $formUserSelect.prop('required', true);
+            }
+        }
+
         $('input[name=checkout_to_type]').on("change",function () {
             var assignto_type = $('input[name=checkout_to_type]:checked').val();
             var userid = $('#assigned_user option:selected').val();
@@ -452,7 +469,12 @@ $(function () {
                 $('[name="assigned_asset"]').val('').trigger('change.select2');
                 $('[name="assigned_location"]').val('').trigger('change.select2');
             }
+
+            toggleHandoverFormUserSelector(assignto_type);
         });
+
+        // Set initial visibility for handover form user selector
+        toggleHandoverFormUserSelector($('input[name=checkout_to_type]:checked').val() || 'user');
     });
 
 

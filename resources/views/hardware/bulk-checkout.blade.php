@@ -135,9 +135,10 @@
                 <div class="col-md-8">
                     <input type="hidden" id="form_number" name="form_number" value="">
 
-                    <!-- User Selector for Form -->
-                    <div id="form-user-selector" style=" margin-bottom: 10px;">
-                        <select name="form_user_id" required class="form-control searchable-select" style="width: 100%;" aria-label="form_user_id">
+                    <!-- User Selector for Form (only when checkout target is not a user) -->
+                    @php $checkoutToType = session('checkout_to_type') ?: 'user'; @endphp
+                    <div id="form-user-selector" style="margin-bottom: 10px;{{ $checkoutToType === 'user' ? ' display: none;' : '' }}">
+                        <select name="form_user_id" class="form-control searchable-select" style="width: 100%;" aria-label="form_user_id" @if($checkoutToType !== 'user') required @endif>
                             <option value="">Select User for Form</option>
                             @foreach(\App\Models\User::orderBy('first_name')->orderBy('last_name')->get() as $user)
                                 <option value="{{ $user->id }}">{{ $user->displayName ." ( Emp No: " .$user->employee_num." ) " }}</option>
@@ -195,6 +196,29 @@
             allowClear: true,
             width: '100%'
         });
+
+        function toggleHandoverFormUserSelector(assignto_type) {
+            var $formUserSelector = $('#form-user-selector');
+            var $formUserSelect = $formUserSelector.find('[name="form_user_id"]');
+
+            if (!$formUserSelector.length) {
+                return;
+            }
+
+            if (assignto_type === 'user') {
+                $formUserSelector.hide();
+                $formUserSelect.prop('required', false).val('').trigger('change');
+            } else {
+                $formUserSelector.show();
+                $formUserSelect.prop('required', true);
+            }
+        }
+
+        $('input[name=checkout_to_type]').on('change', function () {
+            toggleHandoverFormUserSelector($('input[name=checkout_to_type]:checked').val());
+        });
+
+        toggleHandoverFormUserSelector($('input[name=checkout_to_type]:checked').val() || 'user');
     });
 </script>
 <script nonce="{{ csrf_token() }}">

@@ -190,17 +190,15 @@ trait ManagesAssetForms
 
     /**
      * Resolve the employee user ID for handover forms on checkout.
+     * When checking out to a user, always use that user for the form.
+     * form_user_id is only used for asset/location checkouts.
      */
     protected function resolveHandoverFormUserId(?int $formUserId, mixed $checkoutTarget): ?int
     {
-        if ($formUserId) {
-            return $formUserId;
-        }
-
         if ($checkoutTarget instanceof User) {
             return $checkoutTarget->id;
         }
 
-        return null;
+        return $formUserId ?: null;
     }
 }
